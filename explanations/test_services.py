@@ -31,8 +31,12 @@ def _create_trip_plan(
 
 
 def test_build_prompt_zero_stops() -> None:
-    plan = _create_trip_plan(distance_miles="350.00", total_gallons="35.000", total_cost="0.00")
-    plan._prefetched_objects_cache = {"fuel_stops": []}
+    plan = _create_trip_plan(
+        distance_miles="350.00", total_gallons="35.000", total_cost="0.00"
+    )
+    plan._prefetched_objects_cache = {  # type: ignore[attr-defined]
+        "fuel_stops": [],
+    }
 
     service = ExplanationService(llm_client=MagicMock(spec=LLMClient))
     prompt = service.build_prompt(plan)
@@ -44,7 +48,9 @@ def test_build_prompt_zero_stops() -> None:
 
 
 def test_build_prompt_with_fuel_stops() -> None:
-    plan = _create_trip_plan(distance_miles="950.00", total_gallons="95.000", total_cost="275.50")
+    plan = _create_trip_plan(
+        distance_miles="950.00", total_gallons="95.000", total_cost="275.50"
+    )
     station1 = Station(
         id=1,
         opis_id="1001",
@@ -79,7 +85,9 @@ def test_build_prompt_with_fuel_stops() -> None:
         price_per_gallon=Decimal("2.660"),
         cost=Decimal("133.00"),
     )
-    plan._prefetched_objects_cache = {"fuel_stops": [stop1, stop2]}
+    plan._prefetched_objects_cache = {  # type: ignore[attr-defined]
+        "fuel_stops": [stop1, stop2],
+    }
 
     service = ExplanationService(llm_client=MagicMock(spec=LLMClient))
     prompt = service.build_prompt(plan)
@@ -95,7 +103,9 @@ def test_build_prompt_with_fuel_stops() -> None:
 
 def test_explain_invokes_llm_client() -> None:
     plan = _create_trip_plan(distance_miles="350.00")
-    plan._prefetched_objects_cache = {"fuel_stops": []}
+    plan._prefetched_objects_cache = {  # type: ignore[attr-defined]
+        "fuel_stops": [],
+    }
 
     mock_client = MagicMock(spec=LLMClient)
     mock_client.generate_explanation.return_value = (
@@ -105,7 +115,9 @@ def test_explain_invokes_llm_client() -> None:
     service = ExplanationService(llm_client=mock_client)
     explanation = service.explain(plan)
 
-    assert explanation == "The trip is 350 miles, which is within the 500-mile initial range."
+    assert explanation == (
+        "The trip is 350 miles, which is within the 500-mile initial range."
+    )
     mock_client.generate_explanation.assert_called_once()
     call_args = mock_client.generate_explanation.call_args
     assert "Chicago, IL" in call_args.args[0]

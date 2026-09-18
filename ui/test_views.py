@@ -113,3 +113,34 @@ def test_home_view_post_domain_error(client: Client, db: None) -> None:
     assert response.status_code == 400
     assert "error" in response.context
     assert "Unable to resolve location: Atlantis" in response.content.decode()
+
+
+def test_trip_detail_view_get_success(
+    client: Client, sample_trip_plan: TripPlan
+) -> None:
+    url = reverse("trip-detail", kwargs={"trip_id": sample_trip_plan.id})
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert "trip" in response.context
+    assert "route_geojson" in response.context
+    assert "fuel_stops" in response.context
+    assert "stops_json" in response.context
+    assert "SPEEDWAY #100" in response.context["stops_json"]
+
+    content = response.content.decode()
+    assert "Chicago, IL" in content
+    assert "Dallas, TX" in content
+    assert "Total Estimated Fuel Cost" in content
+    assert "AI Route Rationale" in content
+    assert 'id="map"' in content
+    assert "SPEEDWAY #100" in content
+
+
+def test_trip_detail_view_not_found(client: Client, db: None) -> None:
+    import uuid
+
+    url = reverse("trip-detail", kwargs={"trip_id": uuid.uuid4()})
+    response = client.get(url)
+
+    assert response.status_code == 404

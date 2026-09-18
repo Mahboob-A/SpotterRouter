@@ -1,10 +1,251 @@
 {% extends "ui/base.html" %}
 
-{% block title %}Trip Details - Spotter Fuel Router{% endblock %}
+{% block title %}{{ trip.start_input }} to {{ trip.end_input }} - Spotter Fuel Router{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h2 class="card-title">{{ trip.start_input }} &rarr; {{ trip.end_input }}</h2>
-    <div id="map" style="height: 480px; width: 100%; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 20px;"></div>
+<div style="margin-bottom: 16px;">
+    <a href="{% url 'home' %}" class="btn btn-secondary btn-sm">&larr; Back to Route Planner</a>
 </div>
+
+<div class="card" style="margin-bottom: 20px;">
+    <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 6px;">
+        {{ trip.start_input }} &rarr; {{ trip.end_input }}
+    </h1>
+    <p style="color: var(--text-muted); font-size: 0.8125rem;">
+        Trip ID: <code>{{ trip.id }}</code> &bull; Computed {{ trip.created_at|date:"Y-m-d H:i:s" }} UTC
+    </p>
+</div>
+
+<!-- Metrics Bar -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    <div class="card" style="margin-bottom: 0; padding: 18px;">
+        <span style="font-size: 0.8125rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Total Distance</span>
+        <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
+            {{ trip.total_distance_miles }} <span style="font-size: 1rem; font-weight: 400; color: var(--text-muted);">miles</span>
+        </div>
+    </div>
+    <div class="card" style="margin-bottom: 0; padding: 18px;">
+        <span style="font-size: 0.8125rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Total Estimated Fuel Cost</span>
+        <div style="font-size: 1.5rem; font-weight: 700; color: #16a34a; margin-top: 4px;">
+            ${{ trip.total_cost }}
+        </div>
+    </div>
+    <div class="card" style="margin-bottom: 0; padding: 18px;">
+        <span style="font-size: 0.8125rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Total Fuel Consumption</span>
+        <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
+            {{ trip.total_gallons }} <span style="font-size: 1rem; font-weight: 400; color: var(--text-muted);">gal (10 MPG)</span>
+        </div>
+    </div>
+    <div class="card" style="margin-bottom: 0; padding: 18px;">
+        <span style="font-size: 0.8125rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Fuel Stops Planned</span>
+        <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary); margin-top: 4px;">
+            {{ fuel_stops|length }} <span style="font-size: 1rem; font-weight: 400; color: var(--text-muted);">stops (500-mi range)</span>
+        </div>
+    </div>
+</div>
+
+<!-- AI Explanation Card -->
+<div class="card" style="border-left: 4px solid var(--primary);">
+    <h2 class="card-title" style="margin-bottom: 8px;">AI Route Rationale (DeepSeek V4.1 Flash)</h2>
+    {% if trip.ai_explanation %}
+    <p id="ai-explanation-text" style="color: #334155; line-height: 1.6; font-size: 0.9375rem;">
+        {{ trip.ai_explanation }}
+    </p>
+    {% else %}
+    <div id="ai-loading-box" style="display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.875rem;">
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: var(--primary); animation: pulse 1.5s infinite;"></span>
+        <span>Generating AI explanation in background...</span>
+    </div>
+    <p id="ai-explanation-text" style="display: none; color: #334155; line-height: 1.6; font-size: 0.9375rem; margin-top: 8px;"></p>
+    {% endif %}
+</div>
+
+<!-- Leaflet Map Container -->
+<div class="card" style="padding: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h2 class="card-title" style="margin-bottom: 0;">Interactive Route Map</h2>
+        <span style="font-size: 0.8125rem; color: var(--text-muted);">
+            Blue line = Route corridor &bull; Green = Origin &bull; Red = Destination &bull; Orange = Fuel Stops
+        </span>
+    </div>
+    <div id="map" style="height: 500px; width: 100%; border-radius: 6px; border: 1px solid var(--border-color);"></div>
+</div>
+
+<!-- Turn-by-turn Fuel Stops Table -->
+<div class="card">
+    <h2 class="card-title">Planned Refueling Stops</h2>
+    {% if fuel_stops %}
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 70px;">Stop #</th>
+                    <th>Station Name</th>
+                    <th>Location</th>
+                    <th>Miles from Origin</th>
+                    <th>Gallons Purchased</th>
+                    <th>Price / Gallon</th>
+                    <th>Stop Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stop in fuel_stops %}
+                <tr>
+                    <td><span class="btn btn-secondary btn-sm" style="font-weight: 700;">#{{ stop.stop_order }}</span></td>
+                    <td><strong>{{ stop.station.name }}</strong></td>
+                    <td>{{ stop.station.city }}, {{ stop.station.state }}</td>
+                    <td>{{ stop.distance_from_start_miles }} mi</td>
+                    <td>{{ stop.gallons_purchased }} gal</td>
+                    <td>${{ stop.price_per_gallon }}</td>
+                    <td><strong style="color: #16a34a;">${{ stop.cost }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="background-color: #f8fafc; font-weight: 700;">
+                    <td colspan="4" style="text-align: right;">Total Refuel Summary:</td>
+                    <td>{{ trip.total_gallons }} gal</td>
+                    <td>-</td>
+                    <td style="color: #16a34a;">${{ trip.total_cost }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: var(--text-muted); font-size: 0.875rem;">
+        No refueling stops required. The vehicle's 500-mile initial fuel range covers this entire {{ trip.total_distance_miles }}-mile trip.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const routeGeoJson = {{ route_geojson|safe }};
+        const fuelStops = {{ stops_json|safe }};
+        const originLat = {{ origin_lat }};
+        const originLng = {{ origin_lng }};
+        const destLat = {{ dest_lat }};
+        const destLng = {{ dest_lng }};
+
+        // Initialize map centered at origin
+        const map = L.map('map');
+
+        // OpenStreetMap tile layer
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        let boundsGroup = L.featureGroup().addTo(map);
+
+        // Render Route Geometry
+        if (routeGeoJson && routeGeoJson.coordinates && routeGeoJson.coordinates.length > 0) {
+            const routeLayer = L.geoJSON(routeGeoJson, {
+                style: {
+                    color: '#2563eb',
+                    weight: 5,
+                    opacity: 0.85
+                }
+            }).addTo(boundsGroup);
+        }
+
+        // Origin marker
+        if (originLat && originLng) {
+            const originMarker = L.circleMarker([originLat, originLng], {
+                radius: 8,
+                fillColor: '#16a34a',
+                color: '#ffffff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.95
+            }).addTo(boundsGroup);
+            originMarker.bindPopup('<b>Origin:</b><br>{{ trip.start_input|escapejs }}');
+        }
+
+        // Destination marker
+        if (destLat && destLng) {
+            const destMarker = L.circleMarker([destLat, destLng], {
+                radius: 8,
+                fillColor: '#dc2626',
+                color: '#ffffff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.95
+            }).addTo(boundsGroup);
+            destMarker.bindPopup('<b>Destination:</b><br>{{ trip.end_input|escapejs }}');
+        }
+
+        // Fuel stop markers
+        fuelStops.forEach(function(stop) {
+            if (stop.lat && stop.lng) {
+                const stopMarker = L.circleMarker([stop.lat, stop.lng], {
+                    radius: 7,
+                    fillColor: '#f59e0b',
+                    color: '#ffffff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.95
+                }).addTo(boundsGroup);
+
+                const popupHtml = `
+                    <div style="font-size: 0.8125rem;">
+                        <strong style="color: #d97706;">Fuel Stop #${stop.stop_order}</strong><br>
+                        <strong>${stop.station_name}</strong><br>
+                        ${stop.city}, ${stop.state}<br>
+                        Distance: ${stop.distance_from_start_miles} mi<br>
+                        Purchased: ${stop.gallons_purchased} gal @ $${stop.price_per_gallon}/gal<br>
+                        <strong>Stop Cost: $${stop.cost.toFixed(2)}</strong>
+                    </div>
+                `;
+                stopMarker.bindPopup(popupHtml);
+            }
+        });
+
+        // Fit map viewport to route bounds
+        if (boundsGroup.getLayers().length > 0) {
+            map.fitBounds(boundsGroup.getBounds(), { padding: [40, 40] });
+        } else {
+            map.setView([39.8283, -98.5795], 4);
+        }
+
+        // Dynamic polling for AI explanation if not yet generated
+        {% if not trip.ai_explanation %}
+        const tripId = "{{ trip.id }}";
+        let pollCount = 0;
+        const maxPolls = 15;
+
+        const pollTimer = setInterval(function() {
+            pollCount++;
+            if (pollCount > maxPolls) {
+                clearInterval(pollTimer);
+                return;
+            }
+
+            fetch('/api/trips/' + tripId + '/')
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data && data.ai_explanation) {
+                        clearInterval(pollTimer);
+                        const loadingBox = document.getElementById('ai-loading-box');
+                        const textBox = document.getElementById('ai-explanation-text');
+                        if (loadingBox) loadingBox.style.display = 'none';
+                        if (textBox) {
+                            textBox.textContent = data.ai_explanation;
+                            textBox.style.display = 'block';
+                        }
+                    }
+                })
+                .catch(function() {});
+        }, 2500);
+        {% endif %}
+    });
+</script>
+<style>
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.85); }
+    }
+</style>
 {% endblock %}

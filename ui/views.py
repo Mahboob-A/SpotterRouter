@@ -89,11 +89,44 @@ class TripDetailView(View):
             elif isinstance(trip.route_geometry, str):
                 route_geojson = trip.route_geometry
 
-        fuel_stops = list(trip.fuel_stops.all().order_by("stop_order"))
+        fuel_stops = list(
+            trip.fuel_stops.all().select_related("station").order_by("stop_order")
+        )
+
+        stops_data: list[dict[str, Any]] = []
+        for stop in fuel_stops:
+            lat = float(stop.station.location.y) if stop.station.location else 0.0
+            lng = float(stop.station.location.x) if stop.station.location else 0.0
+            stops_data.append(
+                {
+                    "stop_order": stop.stop_order,
+                    "station_name": stop.station.name,
+                    "city": stop.station.city,
+                    "state": stop.station.state,
+                    "lat": lat,
+                    "lng": lng,
+                    "distance_from_start_miles": float(
+                        stop.distance_from_start_miles
+                    ),
+                    "gallons_purchased": float(stop.gallons_purchased),
+                    "price_per_gallon": float(stop.price_per_gallon),
+                    "cost": float(stop.cost),
+                }
+            )
+
+        origin_lat = float(trip.start_point.y) if trip.start_point else 0.0
+        origin_lng = float(trip.start_point.x) if trip.start_point else 0.0
+        dest_lat = float(trip.end_point.y) if trip.end_point else 0.0
+        dest_lng = float(trip.end_point.x) if trip.end_point else 0.0
 
         context = {
             "trip": trip,
             "route_geojson": route_geojson,
             "fuel_stops": fuel_stops,
+            "stops_json": json.dumps(stops_data),
+            "origin_lat": origin_lat,
+            "origin_lng": origin_lng,
+            "dest_lat": dest_lat,
+            "dest_lng": dest_lng,
         }
         return render(request, "ui/trip_detail.html", context)

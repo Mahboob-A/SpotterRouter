@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from django.db.models import QuerySet
 
 from core.repositories import BaseRepository
@@ -12,3 +14,17 @@ class StationRepository(BaseRepository[Station]):
 
     def needing_geocoding(self) -> QuerySet[Station]:
         return self.model.objects.filter(location__isnull=True).order_by("opis_id")
+
+    def exists(self) -> bool:
+        return self.model.objects.exists()
+
+    def clear_all(self) -> int:
+        deleted, _ = self.model.objects.all().delete()
+        return deleted
+
+    def bulk_create(
+        self,
+        stations: Sequence[Station],
+        batch_size: int = 1000,
+    ) -> list[Station]:
+        return list(self.model.objects.bulk_create(stations, batch_size=batch_size))

@@ -15,10 +15,14 @@ logs:
 migrate:
 	docker compose exec -T web python manage.py migrate
 
+STATIONS_CSV ?= fuel-prices-for-be-assessment.csv
+LOAD_STATIONS_FLAGS ?=
+
 load-data:
-	docker compose exec -T web python manage.py import_stations || true
-	docker compose exec -T web python manage.py load_stations || true
-	docker compose exec -T web python manage.py geocode_stations || true
+	docker compose exec -T web python manage.py import_stations $(STATIONS_CSV)
+	docker compose exec -T web python manage.py load_stations $(LOAD_STATIONS_FLAGS)
+	docker compose exec -T web python manage.py geocode_stations
+
 
 test:
 	docker compose exec -T web pytest

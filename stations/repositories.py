@@ -28,3 +28,15 @@ class StationRepository(BaseRepository[Station]):
         batch_size: int = 1000,
     ) -> list[Station]:
         return list(self.model.objects.bulk_create(stations, batch_size=batch_size))
+
+    def bulk_update_locations(
+        self,
+        stations: Sequence[Station],
+        batch_size: int = 1000,
+    ) -> int:
+        return self.model.objects.bulk_update(
+            stations,
+            fields=["location"],
+            batch_size=batch_size,
+        )
+

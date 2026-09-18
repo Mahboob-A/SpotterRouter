@@ -2,10 +2,10 @@ import io
 from decimal import Decimal
 from unittest.mock import patch
 
+import pytest
 from django.contrib.gis.geos import Point
 from django.core.management import call_command
 from django.core.management.base import CommandError
-import pytest
 
 from core.exceptions import GeocodingUnresolvedError
 from stations.models import Station
@@ -71,7 +71,10 @@ class TestGeocodeStationsCommand:
             return Point(-96.7970, 32.7767, srid=4326)
 
         out = io.StringIO()
-        with patch("routing.services.GeocodingService.resolve_point", side_effect=side_effect):
+        with patch(
+            "routing.services.GeocodingService.resolve_point",
+            side_effect=side_effect,
+        ):
             call_command("geocode_stations", stdout=out)
 
         s1 = Station.objects.get(opis_id="201")
@@ -109,8 +112,12 @@ class TestGeocodeStationsCommand:
             return Point(-95.9928, 36.1540, srid=4326)
 
         out = io.StringIO()
-        with patch("routing.services.GeocodingService.resolve_point", side_effect=side_effect):
+        with patch(
+            "routing.services.GeocodingService.resolve_point",
+            side_effect=side_effect,
+        ):
             call_command("geocode_stations", stdout=out)
+
 
         valid_st = Station.objects.get(opis_id="301")
         invalid_st = Station.objects.get(opis_id="302")

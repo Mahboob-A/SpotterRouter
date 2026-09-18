@@ -1,8 +1,8 @@
 from decimal import Decimal
 from unittest.mock import MagicMock
 
-from django.contrib.gis.geos import LineString, Point
 import pytest
+from django.contrib.gis.geos import LineString, Point
 
 from core.exceptions import RoutingUnavailableError
 from routing.adapters.base import RouteResult, RoutingClient

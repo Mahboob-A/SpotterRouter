@@ -1,6 +1,6 @@
-from decimal import Decimal
-from unittest.mock import MagicMock, patch
 import uuid
+from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
 from django.contrib.gis.geos import LineString, Point

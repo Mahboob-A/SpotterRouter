@@ -13,5 +13,9 @@ class GeocodingUnresolvedError(FuelRouterError):
     """Raised when an input cannot be resolved to an in-scope location."""
 
 
+class OutOfScopeLocationError(FuelRouterError):
+    """Raised when a location is outside the contiguous 48 United States."""
+
+
 class InsufficientStationCoverageError(FuelRouterError):
     """Raised when available stations cannot support the route."""

@@ -1,4 +1,5 @@
 from decimal import Decimal
+
 import pytest
 from django.contrib.gis.geos import LineString, Point
 
@@ -12,7 +13,6 @@ from stations.models import Station
 from trips.models import FuelStop, TripPlan
 
 
-@pytest.mark.unit
 def test_trip_plan_request_serializer_valid() -> None:
     data = {"start": "Chicago, IL", "end": "Dallas, TX"}
     serializer = TripPlanRequestSerializer(data=data)
@@ -23,7 +23,6 @@ def test_trip_plan_request_serializer_valid() -> None:
     }
 
 
-@pytest.mark.unit
 def test_trip_plan_request_serializer_trims_whitespace() -> None:
     data = {"start": "  Chicago, IL  ", "end": "  Dallas, TX  "}
     serializer = TripPlanRequestSerializer(data=data)
@@ -34,7 +33,6 @@ def test_trip_plan_request_serializer_trims_whitespace() -> None:
     }
 
 
-@pytest.mark.unit
 @pytest.mark.parametrize(
     "invalid_payload,expected_error_field",
     [
@@ -70,7 +68,10 @@ def test_fuel_stop_response_serializer() -> None:
         end_input="Dallas, TX",
         start_point=Point(-87.6298, 41.8781, srid=4326),
         end_point=Point(-96.7970, 32.7767, srid=4326),
-        route_geometry=LineString([(-87.6298, 41.8781), (-96.7970, 32.7767)], srid=4326),
+        route_geometry=LineString(
+            [(-87.6298, 41.8781), (-96.7970, 32.7767)],
+            srid=4326,
+        ),
         total_distance_miles=Decimal("967.30"),
         total_gallons=Decimal("96.730"),
         total_cost=Decimal("341.52"),
@@ -114,7 +115,10 @@ def test_trip_plan_response_serializer() -> None:
         end_input="Dallas, TX",
         start_point=Point(-87.6298, 41.8781, srid=4326),
         end_point=Point(-96.7970, 32.7767, srid=4326),
-        route_geometry=LineString([(-87.6298, 41.8781), (-96.7970, 32.7767)], srid=4326),
+        route_geometry=LineString(
+            [(-87.6298, 41.8781), (-96.7970, 32.7767)],
+            srid=4326,
+        ),
         total_distance_miles=Decimal("967.30"),
         total_gallons=Decimal("96.730"),
         total_cost=Decimal("341.52"),
@@ -161,7 +165,10 @@ def test_trip_plan_list_serializer() -> None:
         end_input="Dallas, TX",
         start_point=Point(-87.6298, 41.8781, srid=4326),
         end_point=Point(-96.7970, 32.7767, srid=4326),
-        route_geometry=LineString([(-87.6298, 41.8781), (-96.7970, 32.7767)], srid=4326),
+        route_geometry=LineString(
+            [(-87.6298, 41.8781), (-96.7970, 32.7767)],
+            srid=4326,
+        ),
         total_distance_miles=Decimal("967.30"),
         total_gallons=Decimal("96.730"),
         total_cost=Decimal("341.52"),

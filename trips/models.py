@@ -1,0 +1,44 @@
+import uuid
+
+from django.contrib.gis.db import models
+
+
+class TripPlan(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    start_input = models.TextField()
+    end_input = models.TextField()
+    start_point = models.PointField(srid=4326)
+    end_point = models.PointField(srid=4326)
+    route_geometry = models.LineStringField(srid=4326)
+    total_distance_miles = models.DecimalField(max_digits=8, decimal_places=2)
+    total_gallons = models.DecimalField(max_digits=8, decimal_places=3)
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    cache_key = models.CharField(max_length=64, unique=True, db_index=True)
+    ai_explanation = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class FuelStop(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    trip_plan = models.ForeignKey(
+        TripPlan,
+        on_delete=models.CASCADE,
+        related_name="fuel_stops",
+    )
+    station = models.ForeignKey(
+        "stations.Station",
+        on_delete=models.PROTECT,
+        related_name="fuel_stops",
+    )
+    stop_order = models.PositiveSmallIntegerField()
+    distance_from_start_miles = models.DecimalField(max_digits=8, decimal_places=2)
+    gallons_purchased = models.DecimalField(max_digits=8, decimal_places=3)
+    price_per_gallon = models.DecimalField(max_digits=6, decimal_places=3)
+    cost = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        ordering = ["stop_order"]
+        unique_together = [("trip_plan", "stop_order")]

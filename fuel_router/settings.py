@@ -41,7 +41,9 @@ INSTALLED_APPS = [
     "api",
     "stations",
     "routing",
+    "trips",
 ]
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

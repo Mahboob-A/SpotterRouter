@@ -1,8 +1,9 @@
 """Django settings for the fuel router service."""
 
 import os
-
 from pathlib import Path
+
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,9 +32,11 @@ INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.gis",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "rest_framework",
 ]
 
 MIDDLEWARE = [
@@ -69,12 +72,20 @@ WSGI_APPLICATION = "fuel_router.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgis://fuel_router:fuel_router@db:5432/fuel_router",
+)
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=60,
+    )
 }
+
+REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", REDIS_URL)
+GDAL_LIBRARY_PATH = os.environ.get("GDAL_LIBRARY_PATH")
 
 
 # Password validation

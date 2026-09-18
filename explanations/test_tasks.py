@@ -19,7 +19,10 @@ def _make_sample_trip(has_explanation: bool = False) -> TripPlan:
         end_input="Dallas, TX",
         start_point=Point(-87.6298, 41.8781, srid=4326),
         end_point=Point(-96.7970, 32.7767, srid=4326),
-        route_geometry=LineString([(-87.6298, 41.8781), (-96.7970, 32.7767)], srid=4326),
+        route_geometry=LineString(
+            [(-87.6298, 41.8781), (-96.7970, 32.7767)],
+            srid=4326,
+        ),
         total_distance_miles=Decimal("950.00"),
         total_gallons=Decimal("95.000"),
         total_cost=Decimal("250.00"),
@@ -115,7 +118,9 @@ def test_generate_trip_explanation_service_exception_isolated() -> None:
     mock_repo.get_by_id.return_value = trip
 
     mock_service = MagicMock(spec=ExplanationService)
-    mock_service.explain.side_effect = LLMServiceError("Fireworks API rate limit exceeded")
+    mock_service.explain.side_effect = LLMServiceError(
+        "Fireworks API rate limit exceeded"
+    )
 
     mock_cache = MagicMock(spec=TripCacheManager)
 

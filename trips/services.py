@@ -146,7 +146,7 @@ class TripPlanningService:
         self._cache_manager.set(persisted_plan)
 
         try:
-            from explanations.tasks import (  # type: ignore[import-not-found]
+            from explanations.tasks import (
                 generate_trip_explanation,
             )
 

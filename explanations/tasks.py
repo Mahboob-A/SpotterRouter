@@ -1,0 +1,73 @@
+"""Celery background tasks for generating AI trip explanations."""
+
+import logging
+import uuid
+
+from celery import shared_task
+
+from explanations.services import ExplanationService
+from trips.caching import TripCacheManager
+from trips.repositories import TripPlanRepository
+
+logger = logging.getLogger(__name__)
+
+
+@shared_task(name="explanations.tasks.generate_trip_explanation")  # type: ignore[untyped-decorator]
+def generate_trip_explanation(
+    trip_id: str,
+    trip_repository: TripPlanRepository | None = None,
+    explanation_service: ExplanationService | None = None,
+    cache_manager: TripCacheManager | None = None,
+) -> None:
+    """Asynchronously generate a plain-language explanation and attach to TripPlan."""
+    repo = trip_repository or TripPlanRepository()
+    service = explanation_service or ExplanationService()
+    cache = cache_manager or TripCacheManager()
+
+    try:
+        try:
+            parsed_id = uuid.UUID(trip_id)
+        except (ValueError, TypeError, AttributeError) as parse_err:
+            logger.warning(
+                "Invalid trip_id format received: %s (%s)", trip_id, parse_err
+            )
+            return
+
+        trip_plan = repo.get_by_id(parsed_id)
+        if trip_plan is None:
+            logger.warning(
+                "TripPlan with id %s not found for explanation generation",
+                trip_id,
+            )
+            return
+
+        if trip_plan.ai_explanation:
+            logger.info(
+                "TripPlan %s already has an ai_explanation; skipping generation",
+                trip_id,
+            )
+            return
+
+        explanation = service.explain(trip_plan)
+        if not explanation or not explanation.strip():
+            logger.warning(
+                "ExplanationService returned empty explanation for trip %s",
+                trip_id,
+            )
+            return
+
+        cleaned = explanation.strip()
+        repo.update_explanation(trip_plan.id, cleaned)
+
+        # Synchronize in-memory model and update Redis cache
+        trip_plan.ai_explanation = cleaned
+        cache.set(trip_plan)
+        logger.info("Successfully attached AI explanation to trip %s", trip_id)
+
+    except Exception as exc:
+        # Fault isolation per Rule 10: failures are logged and never retried.
+        logger.exception(
+            "Failed to generate AI explanation for trip %s: %s",
+            trip_id,
+            exc,
+        )

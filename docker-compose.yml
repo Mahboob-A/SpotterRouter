@@ -9,6 +9,9 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgis://fuel_router:fuel_router@db:5432/fuel_router}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      FIREWORKS_API_KEY: ${FIREWORKS_API_KEY:-}
+      FIREWORKS_LLM_MODEL_NAME: ${FIREWORKS_LLM_MODEL_NAME:-accounts/fireworks/models/deepseek-v4p1-flash}
+      FIREWORKS_LLM_MODEL_NAE: ${FIREWORKS_LLM_MODEL_NAE:-}
     ports:
       - "8000:8000"
     depends_on:
@@ -25,6 +28,9 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgis://fuel_router:fuel_router@db:5432/fuel_router}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      FIREWORKS_API_KEY: ${FIREWORKS_API_KEY:-}
+      FIREWORKS_LLM_MODEL_NAME: ${FIREWORKS_LLM_MODEL_NAME:-accounts/fireworks/models/deepseek-v4p1-flash}
+      FIREWORKS_LLM_MODEL_NAE: ${FIREWORKS_LLM_MODEL_NAE:-}
     depends_on:
       - db
       - redis

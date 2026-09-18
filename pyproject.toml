@@ -30,7 +30,7 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["fuel_router*", "core*", "api*"]
+include = ["fuel_router*", "core*", "api*", "stations*"]
 
 [tool.ruff]
 line-length = 88

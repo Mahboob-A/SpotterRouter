@@ -1,0 +1,10 @@
+{% extends "ui/base.html" %}
+
+{% block title %}Trip Details - Spotter Fuel Router{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">{{ trip.start_input }} &rarr; {{ trip.end_input }}</h2>
+    <div id="map" style="height: 480px; width: 100%; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 20px;"></div>
+</div>
+{% endblock %}

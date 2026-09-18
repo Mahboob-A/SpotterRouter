@@ -1,0 +1,110 @@
+{% extends "ui/base.html" %}
+
+{% block title %}Plan Trip - Spotter Fuel Router{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">Plan Fuel-Optimal Route</h2>
+
+    {% if error %}
+    <div class="alert alert-error">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <div style="margin-bottom: 20px;">
+        <label class="form-label">Quick Route Presets</label>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            {% for preset in presets %}
+            <button
+                type="button"
+                class="btn btn-secondary btn-sm"
+                onclick="setPreset('{{ preset.start|escapejs }}', '{{ preset.end|escapejs }}')">
+                {{ preset.title }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <form method="post" action="{% url 'home' %}">
+        {% csrf_token %}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div class="form-group">
+                <label for="start" class="form-label">Origin (City, State or Address)</label>
+                <input
+                    type="text"
+                    id="start"
+                    name="start"
+                    class="form-control"
+                    placeholder="e.g. Chicago, IL"
+                    value="{{ start }}"
+                    required>
+            </div>
+            <div class="form-group">
+                <label for="end" class="form-label">Destination (City, State or Address)</label>
+                <input
+                    type="text"
+                    id="end"
+                    name="end"
+                    class="form-control"
+                    placeholder="e.g. Dallas, TX"
+                    value="{{ end }}"
+                    required>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+            Calculate Fuel-Optimal Route
+        </button>
+    </form>
+</div>
+
+<div class="card">
+    <h2 class="card-title">Recent Computed Trips</h2>
+    {% if recent_trips %}
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Origin</th>
+                    <th>Destination</th>
+                    <th>Distance</th>
+                    <th>Estimated Fuel Cost</th>
+                    <th>Planned At</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trip in recent_trips %}
+                <tr>
+                    <td><strong>{{ trip.start_input }}</strong></td>
+                    <td><strong>{{ trip.end_input }}</strong></td>
+                    <td>{{ trip.total_distance_miles }} mi</td>
+                    <td>${{ trip.total_cost }}</td>
+                    <td>{{ trip.created_at|date:"Y-m-d H:i" }}</td>
+                    <td>
+                        <a href="{% url 'trip-detail' trip.id %}" class="btn btn-secondary btn-sm">
+                            View Map
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: var(--text-muted); font-size: 0.875rem;">
+        No past trips found. Plan your first route above.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function setPreset(start, end) {
+        document.getElementById('start').value = start;
+        document.getElementById('end').value = end;
+    }
+</script>
+{% endblock %}

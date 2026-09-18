@@ -1,10 +1,10 @@
 from decimal import Decimal
 from unittest.mock import patch
 
+import pytest
 from django.contrib.gis.geos import LineString, Point
 from django.test import Client
 from django.urls import reverse
-import pytest
 
 from core.exceptions import GeocodingUnresolvedError
 from stations.models import Station
@@ -78,7 +78,11 @@ def test_home_view_post_valid(client: Client, sample_trip_plan: TripPlan) -> Non
         )
 
     assert response.status_code == 302
-    assert response.url == reverse("trip-detail", kwargs={"trip_id": sample_trip_plan.id})
+    expected_url = reverse(
+        "trip-detail",
+        kwargs={"trip_id": sample_trip_plan.id},
+    )
+    assert response["Location"] == expected_url
     mock_plan.assert_called_once_with(
         start_input="Chicago, IL",
         end_input="Dallas, TX",
@@ -91,7 +95,8 @@ def test_home_view_post_empty_inputs(client: Client, db: None) -> None:
 
     assert response.status_code == 400
     assert "error" in response.context
-    assert "Both start and destination locations are required" in response.content.decode()
+    content = response.content.decode()
+    assert "Both start and destination locations are required" in content
 
 
 def test_home_view_post_domain_error(client: Client, db: None) -> None:

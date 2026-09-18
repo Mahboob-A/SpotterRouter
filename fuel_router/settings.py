@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "routing",
     "trips",
     "explanations",
+    "ui",
 ]
 
 

@@ -50,7 +50,7 @@ warn_return_any = true
 disallow_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ["celery", "rest_framework.*"]
+module = ["celery", "rest_framework.*", "uszipcode", "uszipcode.*"]
 ignore_missing_imports = true
 
 [tool.django-stubs]

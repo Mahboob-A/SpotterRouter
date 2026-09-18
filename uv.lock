@@ -331,6 +331,7 @@ dependencies = [
     { name = "psycopg", extra = ["binary"] },
     { name = "redis" },
     { name = "requests" },
+    { name = "sqlalchemy-mate" },
     { name = "uszipcode" },
 ]
 
@@ -358,6 +359,7 @@ requires-dist = [
     { name = "redis", specifier = ">=5.2,<6.0" },
     { name = "requests", specifier = ">=2.32,<3.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12,<1.0" },
+    { name = "sqlalchemy-mate", specifier = "<2.0.0.1" },
     { name = "uszipcode", specifier = ">=1.0,<2.0" },
 ]
 provides-extras = ["dev"]
@@ -874,15 +876,15 @@ wheels = [
 
 [[package]]
 name = "sqlalchemy-mate"
-version = "2.0.0.3"
+version = "2.0.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "prettytable" },
     { name = "sqlalchemy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/54/96/67b2f88d460ad6130fd4ff144c34718bc5b6a526b46a31775029e6cbbe59/sqlalchemy_mate-2.0.0.3.tar.gz", hash = "sha256:f0e74fc40b437fb0c96b79710e68a1f0b46cbc78ac64df1e34e6721621d03ce8", size = 54238, upload-time = "2024-06-06T17:40:44.668Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/e6/62aa62270b5bf806f6ed03401d87c25f45d1988f5a1863c270d1881fd3e2/sqlalchemy_mate-2.0.0.0.tar.gz", hash = "sha256:e7e27e8758894d67f960dd0135f52376b9682a7968bb8e8f1ddbdd1185016949", size = 38310, upload-time = "2024-05-15T06:24:55.052Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/64/d1/a88d4f5252a1b238a0a7373957b0984d6dca1b4578afc175aee229da8f2f/sqlalchemy_mate-2.0.0.3-py3-none-any.whl", hash = "sha256:c2244478a203dc2f17063b701612b97759ba2a757d3768869a40af48dfa898d6", size = 59928, upload-time = "2024-06-06T17:40:42.352Z" },
+    { url = "https://files.pythonhosted.org/packages/04/ad/5ff2c906b1581b9361b9236f15910c1238f66226a15f10993aeb1f554a7c/sqlalchemy_mate-2.0.0.0-py3-none-any.whl", hash = "sha256:c6f23ab4bd5979d227a2427c39aa458e092599387aae74640b1a38040df57812", size = 36305, upload-time = "2024-05-15T06:24:53.257Z" },
 ]
 
 [[package]]

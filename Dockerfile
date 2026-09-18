@@ -20,6 +20,7 @@ COPY --from=ghcr.io/astral-sh/uv:0.9.7 /uv /usr/local/bin/uv
 
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --extra dev
+RUN python -c "from uszipcode import SearchEngine; SearchEngine()"
 
 COPY . .
 

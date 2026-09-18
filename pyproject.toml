@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fuel-router"
+version = "0.1.0"
+description = "Fuel-optimized route planning service."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+  "celery>=5.5,<6.0",
+  "dj-database-url>=2.3,<3.0",
+  "django>=6.1,<6.2",
+  "djangorestframework>=3.16,<4.0",
+  "gunicorn>=23.0,<24.0",
+  "psycopg[binary]>=3.2,<4.0",
+  "redis>=5.2,<6.0",
+  "requests>=2.32,<3.0",
+  "uszipcode>=1.0,<2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "django-stubs>=5.2,<6.0",
+  "mypy>=1.17,<2.0",
+  "pytest>=8.4,<9.0",
+  "pytest-django>=4.11,<5.0",
+  "ruff>=0.12,<1.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["fuel_router*", "core*", "api*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "DJ"]
+ignore = []
+
+[tool.mypy]
+python_version = "3.13"
+plugins = ["mypy_django_plugin.main"]
+strict = true
+warn_unused_ignores = true
+warn_return_any = true
+disallow_untyped_defs = true
+
+[tool.django-stubs]
+django_settings_module = "fuel_router.settings"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "fuel_router.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]

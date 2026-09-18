@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "stations",
     "routing",
     "trips",
+    "explanations",
 ]
 
 
@@ -92,6 +93,16 @@ DATABASES = {
 REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", REDIS_URL)
 GDAL_LIBRARY_PATH = os.environ.get("GDAL_LIBRARY_PATH")
+
+FIREWORKS_API_KEY = os.environ.get("FIREWORKS_API_KEY", "")
+FIREWORKS_API_BASE_URL = os.environ.get(
+    "FIREWORKS_API_BASE_URL",
+    "https://api.fireworks.ai/inference/v1/chat/completions",
+)
+FIREWORKS_LLM_MODEL_NAME = os.environ.get(
+    "FIREWORKS_LLM_MODEL_NAME",
+    "accounts/fireworks/models/deepseek-v4p1-flash",
+)
 
 
 # Password validation

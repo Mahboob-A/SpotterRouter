@@ -10,7 +10,6 @@ from explanations.adapters import (
 )
 from explanations.exceptions import (
     LLMConfigurationError,
-    LLMError,
     LLMServiceError,
 )
 
@@ -89,7 +88,10 @@ def test_fireworks_client_success(mock_post: MagicMock) -> None:
     call_kwargs = mock_post.call_args.kwargs
     assert call_kwargs["headers"]["Authorization"] == "Bearer test-api-key"
     assert call_kwargs["headers"]["Content-Type"] == "application/json"
-    assert call_kwargs["json"]["model"] == "accounts/fireworks/models/deepseek-v4p1-flash"
+    assert (
+        call_kwargs["json"]["model"]
+        == "accounts/fireworks/models/deepseek-v4p1-flash"
+    )
     assert call_kwargs["json"]["messages"] == [
         {"role": "system", "content": "Custom system prompt"},
         {"role": "user", "content": "Route has 1 stop"},

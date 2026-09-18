@@ -31,7 +31,7 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["fuel_router*", "core*", "api*", "stations*", "routing*", "trips*"]
+include = ["fuel_router*", "core*", "api*", "stations*", "routing*", "trips*", "explanations*"]
 
 
 [tool.ruff]

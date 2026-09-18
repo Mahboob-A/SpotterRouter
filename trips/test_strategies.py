@@ -1,7 +1,7 @@
 from decimal import Decimal
 
-from django.contrib.gis.geos import Point
 import pytest
+from django.contrib.gis.geos import Point
 
 from core.exceptions import InsufficientStationCoverageError
 from stations.repositories import StationCandidate

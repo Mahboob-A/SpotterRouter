@@ -1,10 +1,10 @@
 import uuid
 from decimal import Decimal
 
+import pytest
 from django.contrib.gis.geos import LineString, Point
 from django.db import IntegrityError
 from django.db.models import ProtectedError
-import pytest
 
 from stations.models import Station
 from trips.models import FuelStop, TripPlan

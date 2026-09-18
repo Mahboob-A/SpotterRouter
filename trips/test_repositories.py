@@ -1,8 +1,8 @@
 import uuid
 from decimal import Decimal
 
-from django.contrib.gis.geos import LineString, Point
 import pytest
+from django.contrib.gis.geos import LineString, Point
 
 from stations.models import Station
 from trips.models import FuelStop, TripPlan
@@ -13,10 +13,8 @@ def _make_station(opis_id: str, name: str, lat: float, lon: float) -> Station:
     return Station.objects.create(
         opis_id=opis_id,
         name=name,
-        address="123 Main St",
         city="Testville",
         state="TX",
-        rack_price=Decimal("3.500"),
         retail_price=Decimal("3.850"),
         location=Point(lon, lat, srid=4326),
     )

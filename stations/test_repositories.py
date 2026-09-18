@@ -8,7 +8,7 @@ from stations.repositories import StationRepository
 
 
 @pytest.mark.django_db
-class StationRepositoryTests:
+class TestStationRepository:
     def test_get_by_opis_id_returns_matching_station(self) -> None:
         station = Station.objects.create(
             opis_id="1001",

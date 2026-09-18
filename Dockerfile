@@ -19,7 +19,7 @@ RUN apt-get update \
 COPY --from=ghcr.io/astral-sh/uv:0.9.7 /uv /usr/local/bin/uv
 
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --extra dev
 
 COPY . .
 

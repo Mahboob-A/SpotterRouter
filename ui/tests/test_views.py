@@ -578,3 +578,28 @@ def test_trip_detail_view_renders_map_tile_config(
     assert "zoomOffset:" in content
 
 
+def test_favicon_root_redirect(client: Client) -> None:
+    response = client.get("/favicon.ico")
+    assert response.status_code == 301
+    assert response["Location"] == "/static/favicons/favicon.ico"
+
+
+def test_apple_touch_icon_root_redirect(client: Client) -> None:
+    response = client.get("/apple-touch-icon.png")
+    assert response.status_code == 301
+    assert response["Location"] == "/static/favicons/apple-touch-icon.png"
+
+
+def test_base_template_includes_favicon_and_manifest_links(
+    client: Client, db: None
+) -> None:
+    response = client.get(reverse("home"))
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "/static/favicons/favicon.ico" in content
+    assert "/static/favicons/apple-touch-icon.png" in content
+    assert "/static/favicons/site.webmanifest" in content
+    assert 'content="#063B2A"' in content
+
+
+

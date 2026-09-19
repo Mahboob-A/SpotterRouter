@@ -504,3 +504,24 @@ class DocsView(View):
         }
         return render(request, "ui/docs.html", context)
 
+
+class ApiDocsView(View):
+    """Presentation view for interactive Swagger UI documentation."""
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        return render(request, "ui/swagger_ui.html")
+
+
+class OpenApiSchemaView(View):
+    """Serve the raw OpenAPI specification YAML file."""
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        schema_path = settings.BASE_DIR / "fuel-router.openapi.yaml"
+        if not schema_path.is_file():
+            raise Http404("OpenAPI specification file not found.")
+        content = schema_path.read_text(encoding="utf-8")
+        return HttpResponse(
+            content, content_type="application/yaml; charset=utf-8"
+        )
+
+

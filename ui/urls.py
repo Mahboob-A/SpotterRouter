@@ -1,10 +1,12 @@
 from django.urls import path
 
 from ui.views import (
+    ApiDocsView,
     DatasetsView,
     DocsView,
     HomeView,
     LocationsView,
+    OpenApiSchemaView,
     RecentTripsApiView,
     TripDetailView,
     TripPdfView,
@@ -41,5 +43,15 @@ urlpatterns = [
         "docs/",
         DocsView.as_view(),
         name="docs",
+    ),
+    path(
+        "api-docs/",
+        ApiDocsView.as_view(),
+        name="api-docs",
+    ),
+    path(
+        "openapi.yaml",
+        OpenApiSchemaView.as_view(),
+        name="openapi-schema",
     ),
 ]

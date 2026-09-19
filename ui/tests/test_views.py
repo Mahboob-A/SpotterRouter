@@ -1,6 +1,7 @@
 import uuid
 from collections.abc import Iterable
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
@@ -752,6 +753,27 @@ def test_staticfiles_urlpatterns_when_debug_enabled(settings: Any) -> None:
     assert "static/" in str(patterns[0].pattern)
 
 
+def test_api_docs_view(client: Client) -> None:
+    response = client.get("/api-docs/")
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+    assert "Interactive API Documentation" in content
+    assert "id=\"swagger-ui\"" in content
+    assert "SwaggerUIBundle" in content
+    assert "/openapi.yaml" in content
 
 
+def test_openapi_schema_view(client: Client) -> None:
+    response = client.get("/openapi.yaml")
+    assert response.status_code == 200
+    assert "application/yaml" in response["Content-Type"]
+    content = response.content.decode("utf-8")
+    assert "openapi: 3.0.3" in content
+    assert "Fuel Router API" in content
+    assert "/api/trips/:" in content
 
+
+def test_openapi_schema_view_not_found(client: Client, settings: Any) -> None:
+    settings.BASE_DIR = Path("/nonexistent/dir")
+    response = client.get("/openapi.yaml")
+    assert response.status_code == 404

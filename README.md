@@ -7,11 +7,11 @@ Intelligent Long-Haul Fuel Route Optimization Engine for Contiguous US Commercia
 [![PostgreSQL 17 / PostGIS 3.5](https://img.shields.io/badge/PostGIS-17--3.5-336791.svg?logo=postgresql&logoColor=white)](https://postgis.net/)
 [![Redis 8](https://img.shields.io/badge/Redis-8.0-DC382D.svg?logo=redis&logoColor=white)](https://redis.io/)
 [![Celery 5.5](https://img.shields.io/badge/Celery-5.5-37814A.svg?logo=celery&logoColor=white)](https://docs.celeryq.dev/)
-[![Tests Passed](https://img.shields.io/badge/Tests-228%20Passed-22c55e.svg?logo=pytest&logoColor=white)](/)
-[![Mypy Strict](https://img.shields.io/badge/Types-Mypy%20Strict-2563eb.svg)](/)
-[![Ruff Lint](https://img.shields.io/badge/Linter-Ruff-261230.svg?logo=ruff&logoColor=white)](/)
-[![OpenAPI 3.0](https://img.shields.io/badge/OpenAPI-3.0.3-6BA539.svg?logo=openapi-initiative&logoColor=white)](/openapi.yaml)
-[![Dokploy Ready](https://img.shields.io/badge/Deploy-Dokploy-000000.svg)](/docs/?doc=05-Deployments/dokploy-platform-deployment-and-traefik)
+[![Tests Passed](https://img.shields.io/badge/Tests-228%20Passed-22c55e.svg?logo=pytest&logoColor=white)](docs/08-Preparation-and-testing/testing-strategy-and-quality-checks.md)
+[![Mypy Strict](https://img.shields.io/badge/Types-Mypy%20Strict-2563eb.svg)](docs/08-Preparation-and-testing/testing-strategy-and-quality-checks.md)
+[![Ruff Lint](https://img.shields.io/badge/Linter-Ruff-261230.svg?logo=ruff&logoColor=white)](docs/08-Preparation-and-testing/testing-strategy-and-quality-checks.md)
+[![OpenAPI 3.0](https://img.shields.io/badge/OpenAPI-3.0.3-6BA539.svg?logo=openapi-initiative&logoColor=white)](fuel-router.openapi.yaml)
+[![Dokploy Ready](https://img.shields.io/badge/Deploy-Dokploy-000000.svg)](docs/05-Deployments/dokploy-platform-deployment-and-traefik.md)
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/340d8a62-55a2-47d9-845c-8e3ebcd2d6e1" alt="SpotterRouter Fleet Fuel Optimization Engine" width="700" height="500" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);" />
@@ -21,33 +21,33 @@ Intelligent Long-Haul Fuel Route Optimization Engine for Contiguous US Commercia
 
 ## Application Routes & Live Navigation
 
-The application provides server-rendered interfaces alongside REST APIs. All links below use relative paths so they work in both local development and production environments:
+When running locally (default: `http://localhost:8000`), the following web interfaces and API endpoints are available:
 
 | Route | Name | Purpose & Why It Exists |
 |---|---|---|
-| `/` | [Trip Planner & Dashboard](/) | Main interface to plan routes, preview benchmark pairs, view fuel stops on an interactive Leaflet map, and inspect recent trip history. |
-| `/locations/` | [Location Explorer](/locations/) | Search and browse supported contiguous US cities, states, and coordinates to verify geocoding coverage before dispatching. |
-| `/datasets/` | [Dataset Manager](/datasets/) | Inspect active OPIS fuel price data, upload new CSVs, verify SHA-256 hashes, and switch active datasets in real time without downtime. |
-| `/docs/` | [Engineering Documentation](/docs/) | Built-in VS Code-style interactive reader containing 24 comprehensive articles covering architecture, algorithms, tradeoffs, infra, and deployments. |
-| `/api-docs/` | [Interactive Swagger UI](/api-docs/) | Test and explore the REST API directly in the browser with live parameter execution and schema validation. |
-| `/openapi.yaml` | [OpenAPI Specification](/openapi.yaml) | Raw OpenAPI 3.0 YAML specification file ready for import into Postman, Insomnia, or client SDK generators. |
-| `/api/health/` | [System Health Check](/api/health/) | Machine-readable health check verifying connectivity to PostgreSQL/PostGIS, Redis, and OSRM routing services. |
-| `/trips/<id>/pdf/` | Driver Dispatch PDF | In-memory commercial driver dispatch sheet with turn-by-turn refueling instructions and safety checklists. |
+| `/` | [Trip Planner & Dashboard](http://localhost:8000/) | Main interface to plan routes, preview benchmark pairs, view fuel stops on an interactive Leaflet map, and inspect recent trip history. |
+| `/locations/` | [Location Explorer](http://localhost:8000/locations/) | Search and browse supported contiguous US cities, states, and coordinates to verify geocoding coverage before dispatching. |
+| `/datasets/` | [Dataset Manager](http://localhost:8000/datasets/) | Inspect active OPIS fuel price data, upload new CSVs, verify SHA-256 hashes, and switch active datasets in real time without downtime. |
+| `/docs/` | [Engineering Documentation](http://localhost:8000/docs/) | Built-in VS Code-style interactive reader containing 24 comprehensive articles covering architecture, algorithms, tradeoffs, infra, and deployments. |
+| `/api-docs/` | [Interactive Swagger UI](http://localhost:8000/api-docs/) | Test and explore the REST API directly in the browser with live parameter execution and schema validation. |
+| `/openapi.yaml` | [OpenAPI Specification](http://localhost:8000/openapi.yaml) | Raw OpenAPI 3.0 YAML specification file ready for import into Postman, Insomnia, or client SDK generators (also available in repository as [fuel-router.openapi.yaml](fuel-router.openapi.yaml)). |
+| `/api/health/` | [System Health Check](http://localhost:8000/api/health/) | Machine-readable health check verifying connectivity to PostgreSQL/PostGIS, Redis, and OSRM routing services. |
+| `/trips/<id>/pdf/` | Driver Dispatch PDF | In-memory commercial driver dispatch sheet with turn-by-turn refueling instructions and safety checklists (e.g. `http://localhost:8000/trips/<uuid:id>/pdf/`). |
 
 ---
 
 ## Deep-Dive Documentation
 
-For thorough explanations of design choices, math, tradeoffs, infrastructure, and lessons learned, explore the dedicated documentation suite at `[/docs/](/docs/)`:
+For thorough explanations of design choices, math, tradeoffs, infrastructure, and lessons learned, explore the dedicated documentation suite in [docs/](docs/) (or live in the application at [http://localhost:8000/docs/](http://localhost:8000/docs/)):
 
-- **01 System architecture**: Clean architecture layer boundaries, domain isolation, two-tier cache-aside with Redis and PostGIS, and the asynchronous Celery pipeline.
-- **02 Current implemented system**: PostGIS spatial corridor matching (`ST_LineLocatePoint`), greedy lookahead refueling algorithm, in-memory PDF engine, and dataset versioning.
-- **03 Design decisions and tradeoffs**: Local filesystem vs cloud storage, OpenStreetMap direct tiles vs MapTiler Cloud, and synchronous vs asynchronous AI rationales.
-- **04 Infrastructure architecture**: Multi-environment Docker Compose files, Nginx reverse proxy edge routing, Redis hit/miss lifecycle with `X-Cache` headers, and operational choices.
-- **05 Production deployments**: Dokploy platform deployment, Traefik edge ingress, automated SSL, secret management, and zero-downtime rolling releases.
-- **06 Brainstorming and failed paths**: First attempts that did not work (midpoint stops, unindexed bounding boxes, full-tank fills) and why the final approach succeeded.
-- **07 What I learned**: Personal engineering reflections on PostGIS spatial queries, greedy algorithms, and US freight logistics.
-- **08 Preparation and engineering standards**: Implementation roadmap, 228 automated tests, strict static typing, and Docker container parity.
+- **[01 System architecture](docs/01-Architecture/)**: Clean architecture layer boundaries, domain isolation, two-tier cache-aside with Redis and PostGIS, and the [asynchronous Celery pipeline](docs/01-Architecture/asynchronous-celery-worker-pipeline.md).
+- **[02 Current implemented system](docs/02-Current-system/)**: PostGIS spatial corridor matching (`ST_LineLocatePoint`), greedy lookahead refueling algorithm, in-memory PDF engine, and dataset versioning.
+- **[03 Design decisions and tradeoffs](docs/03-Tradeoffs/)**: Local filesystem vs cloud storage, OpenStreetMap direct tiles vs MapTiler Cloud, and synchronous vs asynchronous AI rationales.
+- **[04 Infrastructure architecture](docs/04-Infra/)**: Multi-environment Docker Compose files, Nginx reverse proxy edge routing, Redis hit/miss lifecycle with `X-Cache` headers, and operational choices.
+- **[05 Production deployments](docs/05-Deployments/)**: Dokploy platform deployment, Traefik edge ingress, automated SSL, secret management, and zero-downtime rolling releases.
+- **[06 Brainstorming and failed paths](docs/06-Brainstorming-and-failed-paths/)**: First attempts that did not work (midpoint stops, unindexed bounding boxes, full-tank fills) and why the final approach succeeded.
+- **[07 What I learned](docs/07-Learning-journey/)**: Personal engineering reflections on PostGIS spatial queries, greedy algorithms, and US freight logistics.
+- **[08 Preparation and engineering standards](docs/08-Preparation-and-testing/)**: Implementation roadmap, 228 automated tests, strict static typing, and Docker container parity.
 
 ---
 

@@ -204,7 +204,7 @@
                     <th>Estimated Refuel Cost</th>
                     <th>Dataset Version</th>
                     <th>Planned At</th>
-                    <th>Action</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="recent-trips-tbody">
@@ -223,9 +223,24 @@
                     </td>
                     <td class="tabular-nums">{{ trip.last_requested_at|default:trip.created_at|date:"Y-m-d H:i" }}</td>
                     <td>
-                        <a href="{% url 'trip-detail' trip.id %}" class="btn btn-secondary btn-sm">
-                            View Map
-                        </a>
+                        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                            <a href="{% url 'trip-detail' trip.id %}" class="btn btn-secondary btn-sm" title="View route geometry, fuel stops, and dispatch report">
+                                View Route
+                            </a>
+                            <form method="post" action="{% url 'home' %}" style="margin: 0; display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="start" value="{{ trip.start_input }}">
+                                <input type="hidden" name="end" value="{{ trip.end_input }}">
+                                <input type="hidden" name="force_refresh" value="1">
+                                <button type="submit" class="btn btn-secondary btn-sm" title="Re-optimize route with latest fuel prices">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px; margin-right: 3px;">
+                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                    </svg>
+                                    Recalculate
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -273,6 +288,9 @@
                 var tbody = document.getElementById('recent-trips-tbody');
                 if (!tbody) return;
 
+                var csrfTokenElem = document.querySelector('input[name="csrfmiddlewaretoken"]');
+                var csrfToken = csrfTokenElem ? csrfTokenElem.value : '';
+
                 data.trips.forEach(function(trip) {
                     var tr = document.createElement('tr');
                     tr.className = 'fade-in-row';
@@ -286,7 +304,24 @@
                         '<td><span class="badge badge-green">$' + escapeHtml(trip.total_cost) + '</span></td>' +
                         '<td>' + versionBadge + '</td>' +
                         '<td class="tabular-nums">' + escapeHtml(trip.created_at) + '</td>' +
-                        '<td><a href="' + trip.detail_url + '" class="btn btn-secondary btn-sm">View Map</a></td>';
+                        '<td>' +
+                            '<div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">' +
+                                '<a href="' + escapeHtml(trip.detail_url) + '" class="btn btn-secondary btn-sm" title="View route geometry, fuel stops, and dispatch report">View Route</a>' +
+                                '<form method="post" action="{% url 'home' %}" style="margin: 0; display: inline;">' +
+                                    '<input type="hidden" name="csrfmiddlewaretoken" value="' + escapeHtml(csrfToken) + '">' +
+                                    '<input type="hidden" name="start" value="' + escapeHtml(trip.start_input) + '">' +
+                                    '<input type="hidden" name="end" value="' + escapeHtml(trip.end_input) + '">' +
+                                    '<input type="hidden" name="force_refresh" value="1">' +
+                                    '<button type="submit" class="btn btn-secondary btn-sm" title="Re-optimize route with latest fuel prices">' +
+                                        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px; margin-right: 3px;">' +
+                                            '<polyline points="23 4 23 10 17 10"></polyline>' +
+                                            '<path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>' +
+                                        '</svg>' +
+                                        'Recalculate' +
+                                    '</button>' +
+                                '</form>' +
+                            '</div>' +
+                        '</td>';
                     tbody.appendChild(tr);
                 });
 

@@ -67,9 +67,13 @@ def test_home_view_get(client: Client, sample_trip_plan: TripPlan) -> None:
     assert "recent_trips" in response.context
     assert "presets" in response.context
     assert len(response.context["recent_trips"]) >= 1
-    assert "Chicago, IL" in response.content.decode()
-    assert "Dallas, TX" in response.content.decode()
-    assert "Chicago, IL to Dallas, TX" in response.content.decode()
+    content = response.content.decode()
+    assert "Chicago, IL" in content
+    assert "Dallas, TX" in content
+    assert "Chicago, IL to Dallas, TX" in content
+    assert "Actions" in content
+    assert "View Route" in content
+    assert "Recalculate" in content
 
 
 def test_home_view_post_valid(client: Client, sample_trip_plan: TripPlan) -> None:

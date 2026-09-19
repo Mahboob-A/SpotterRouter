@@ -81,9 +81,53 @@ def test_post_trips_success(api_client: APIClient, sample_trip_plan: TripPlan) -
     assert data["route_geometry"]["type"] == "LineString"
     assert len(data["fuel_stops"]) == 1
     assert data["fuel_stops"][0]["station_name"] == "PILOT TRAVEL CENTER"
+    assert response.headers["X-Cache"] == "MISS"
     mock_plan.assert_called_once_with(
         start_input="Chicago, IL",
         end_input="Dallas, TX",
+        force_refresh=False,
+    )
+
+
+def test_post_trips_xcache_header_hit_and_force_refresh(
+    api_client: APIClient, sample_trip_plan: TripPlan
+) -> None:
+    url = reverse("trip-plan-list-create")
+
+    sample_trip_plan.is_cache_hit = True
+    with patch(
+        "trips.services.TripPlanningService.plan_trip",
+        return_value=sample_trip_plan,
+    ) as mock_plan:
+        response = api_client.post(
+            url,
+            {"start": "Chicago, IL", "end": "Dallas, TX"},
+            format="json",
+        )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.headers["X-Cache"] == "HIT"
+    mock_plan.assert_called_once_with(
+        start_input="Chicago, IL",
+        end_input="Dallas, TX",
+        force_refresh=False,
+    )
+
+    sample_trip_plan.is_cache_hit = False
+    with patch(
+        "trips.services.TripPlanningService.plan_trip",
+        return_value=sample_trip_plan,
+    ) as mock_plan_refresh:
+        response_refresh = api_client.post(
+            url,
+            {"start": "Chicago, IL", "end": "Dallas, TX", "force_refresh": True},
+            format="json",
+        )
+    assert response_refresh.status_code == status.HTTP_200_OK
+    assert response_refresh.headers["X-Cache"] == "MISS"
+    mock_plan_refresh.assert_called_once_with(
+        start_input="Chicago, IL",
+        end_input="Dallas, TX",
+        force_refresh=True,
     )
 
 

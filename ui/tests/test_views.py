@@ -71,9 +71,14 @@ def test_home_view_get(client: Client, sample_trip_plan: TripPlan) -> None:
     assert "Chicago, IL" in content
     assert "Dallas, TX" in content
     assert "Chicago, IL to Dallas, TX" in content
-    assert "Actions" in content
-    assert "View Route" in content
-    assert "Recalculate" in content
+    assert "Action" in content
+    assert "View route" in content
+    assert "Estimated refuel cost" in content
+    assert "Dataset version" in content
+    assert "Planned at" in content
+    assert "Calculate Fuel-Optimal Route" in content
+    assert "Calculate Fuel-Optimal Route &rarr;" not in content
+    assert "Recalculate" not in content
 
 
 def test_home_view_post_valid(client: Client, sample_trip_plan: TripPlan) -> None:
@@ -93,9 +98,11 @@ def test_home_view_post_valid(client: Client, sample_trip_plan: TripPlan) -> Non
         kwargs={"trip_id": sample_trip_plan.id},
     )
     assert response["Location"] == expected_url
+    assert response.headers["X-Cache"] == "MISS"
     mock_plan.assert_called_once_with(
         start_input="Chicago, IL",
         end_input="Dallas, TX",
+        force_refresh=False,
     )
 
 
@@ -143,7 +150,11 @@ def test_trip_detail_view_get_success(
     content = response.content.decode()
     assert "Chicago, IL" in content
     assert "Dallas, TX" in content
-    assert "Total Refuel Cost" in content
+    assert "Total refuel cost" in content
+    assert "Total distance" in content
+    assert "Origin departure" in content
+    assert "En-route refueling" in content
+    assert "Total journey consumed" in content
     assert "Fuel Purchased En Route" in content
     assert "Analysis" in content
     assert "DeepSeek" not in content

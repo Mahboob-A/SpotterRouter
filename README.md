@@ -182,14 +182,14 @@ The user interface is built using server-rendered Django templates and Leaflet.j
 
 ---
 
-## 6. Postman & OpenAPI Test Suite
+## 6. API Documentation & OpenAPI Specification
 
-Importable specifications are provided at:
+An importable OpenAPI 3.0/3.1 YAML specification is provided at:
 ```
-fuel-router.openapi.yaml             # OpenAPI 3.0/3.1 YAML specification
-fuel-router.postman_collection.yaml  # Postman Collection in YAML format
+fuel-router.openapi.yaml
 ```
-It contains pre-built requests for:
+You can import this file directly into Postman or view the interactive Swagger UI at `/api-docs/`. It defines endpoints and schemas for:
+
 
 - System health check
 - All 4 benchmark route presets

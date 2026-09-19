@@ -512,6 +512,20 @@ def test_trip_detail_view_shows_dataset_version_badge(
     assert "OPIS-DETAIL-V1" in content
 
 
+def test_trip_detail_view_has_export_pdf_button(
+    client: Client, sample_trip_plan: TripPlan
+) -> None:
+    url = reverse("trip-detail", kwargs={"trip_id": sample_trip_plan.id})
+    response = client.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    pdf_url = reverse("trip-pdf", kwargs={"trip_id": sample_trip_plan.id})
+    assert "Export to PDF" in content
+    assert pdf_url in content
+
+
+
 def test_trip_pdf_view_inline(
     client: Client, sample_trip_plan: TripPlan
 ) -> None:

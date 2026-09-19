@@ -13,7 +13,8 @@
         border-radius: 10px;
         padding: 20px 24px;
         margin-bottom: 24px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        box-shadow: var(--shadow-card);
+        transition: background-color 0.2s ease, border-color 0.2s ease;
     }
     .filter-form {
         display: grid;
@@ -32,20 +33,21 @@
         border: 1px solid var(--border-color);
         border-radius: 10px;
         padding: 16px 20px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        box-shadow: var(--shadow-card);
+        transition: background-color 0.2s ease, border-color 0.2s ease;
     }
     .stat-label {
         font-size: 0.75rem;
         font-weight: 700;
-        text-transform: uppercase;
         color: var(--text-muted);
-        letter-spacing: 0.03em;
+        letter-spacing: 0.02em;
     }
     .stat-value {
         font-size: 1.5rem;
         font-weight: 800;
         color: var(--text-main);
         margin-top: 4px;
+        font-variant-numeric: tabular-nums;
     }
     .pagination {
         display: flex;
@@ -60,6 +62,10 @@
         display: flex;
         gap: 6px;
         flex-wrap: wrap;
+    }
+    select option {
+        background-color: var(--card-bg);
+        color: var(--text-main);
     }
 </style>
 {% endblock %}

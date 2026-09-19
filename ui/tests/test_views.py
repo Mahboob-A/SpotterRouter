@@ -280,3 +280,52 @@ def test_locations_view_filter_and_search(client: Client, db: None) -> None:
     content_state = resp_state.content.decode()
     assert "Dallas, TX" in content_state
     assert "Columbus, OH" not in content_state
+
+
+def test_dark_mode_toggle_present_after_locations(client: Client, db: None) -> None:
+    url = reverse("home")
+    response = client.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+
+    # Verify theme toggle button exists with "Dark" text (no emojis, no "Night Mode")
+    assert 'id="theme-toggle"' in content
+    assert 'id="theme-text">Dark<' in content
+    assert "Night Mode" not in content
+    assert "🌙" not in content
+    assert "☀️" not in content
+
+    # Verify placement: Locations link must appear before theme-toggle in nav
+    loc_pos = content.find(reverse("locations"))
+    toggle_pos = content.find('id="theme-toggle"')
+    assert loc_pos != -1
+    assert toggle_pos != -1
+    assert loc_pos < toggle_pos
+
+
+def test_base_contains_fouc_prevention_script(client: Client, db: None) -> None:
+    url = reverse("home")
+    response = client.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+
+    assert "spotterrouter_theme" in content
+    assert "document.documentElement.setAttribute('data-theme', theme);" in content
+
+
+def test_hero_ambient_and_grid_markup(client: Client, db: None) -> None:
+    url = reverse("home")
+    response = client.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+
+    assert "hero-container" in content
+    assert "hero-ambient-layer" in content
+    assert "hero-grid-overlay" in content
+    assert "Contiguous US Fleet Route Engine" in content
+    assert "Quick Benchmark Presets" in content
+    assert "shiftAmbientHues" in content
+

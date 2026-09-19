@@ -6,32 +6,66 @@
 <style>
     .hero-container {
         position: relative;
-        background-color: #ffffff;
-        background-image: 
-            radial-gradient(ellipse at 50% 0%, rgba(37, 99, 235, 0.05) 0%, transparent 70%),
-            linear-gradient(to right, rgba(226, 232, 240, 0.6) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(226, 232, 240, 0.6) 1px, transparent 1px);
-        background-size: 100% 100%, 28px 28px, 28px 28px;
         border: 1px solid var(--border-color);
         border-radius: 12px;
-        padding: 36px 32px;
+        overflow: hidden;
         margin-bottom: 28px;
-        box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+        background-color: var(--card-bg);
+        box-shadow: var(--shadow-card);
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+    .hero-ambient-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0.9;
+        transition: background 7s cubic-bezier(0.4, 0, 0.2, 1);
+        background: radial-gradient(circle at 20% 25%, rgba(37, 99, 235, 0.12) 0%, transparent 55%),
+                    radial-gradient(circle at 80% 75%, rgba(99, 102, 241, 0.10) 0%, transparent 55%);
+    }
+    [data-theme="dark"] .hero-ambient-layer {
+        opacity: 0.75;
+        background: radial-gradient(circle at 20% 25%, rgba(59, 130, 246, 0.22) 0%, transparent 55%),
+                    radial-gradient(circle at 80% 75%, rgba(139, 92, 246, 0.18) 0%, transparent 55%);
+    }
+    .hero-grid-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2;
+        background-image: 
+            linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+            linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+        background-size: 28px 28px;
+        mask-image: radial-gradient(ellipse 95% 95% at 50% 50%, black 55%, transparent 100%);
+        -webkit-mask-image: radial-gradient(ellipse 95% 95% at 50% 50%, black 55%, transparent 100%);
+    }
+    .hero-content {
+        position: relative;
+        z-index: 3;
+        padding: 36px 32px;
     }
     .hero-badge {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 4px 10px;
-        background-color: #eff6ff;
-        color: #1d4ed8;
-        border: 1px solid #bfdbfe;
+        padding: 4px 12px;
+        background-color: var(--primary-light);
+        color: var(--primary);
+        border: 1px solid rgba(37, 99, 235, 0.2);
         border-radius: 9999px;
         font-size: 0.75rem;
         font-weight: 700;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
+        letter-spacing: 0.01em;
         margin-bottom: 12px;
+    }
+    .hero-badge-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: var(--primary);
     }
     .hero-title {
         font-size: 1.5rem;
@@ -45,6 +79,7 @@
         color: var(--text-muted);
         margin-bottom: 24px;
         line-height: 1.5;
+        max-width: 72ch;
     }
     .fade-in-row {
         animation: fadeIn 0.3s ease-in-out;
@@ -58,73 +93,77 @@
 
 {% block content %}
 <div class="hero-container">
-    <div class="hero-badge">
-        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #2563eb;"></span>
-        Contiguous US Fleet Route Engine
-    </div>
-    <h1 class="hero-title">Optimize Fuel Stops & Minimize Long-Haul Cost</h1>
-    <p class="hero-subtitle">
-        Enter your origin and destination across the 48 contiguous United States. Our lookahead algorithm plans your 500-mile range stops at the lowest retail fuel prices along the corridor.
-    </p>
+    <div class="hero-ambient-layer" id="hero-ambient"></div>
+    <div class="hero-grid-overlay"></div>
+    <div class="hero-content">
+        <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
+            Contiguous US Fleet Route Engine
+        </div>
+        <h1 class="hero-title">Optimize Fuel Stops &amp; Minimize Long-Haul Cost</h1>
+        <p class="hero-subtitle">
+            Enter your origin and destination across the 48 contiguous United States. Our lookahead algorithm plans your 500-mile range stops at the lowest retail fuel prices along the corridor.
+        </p>
 
-    {% if error %}
-    <div class="alert alert-error">
-        {{ error }}
-    </div>
-    {% endif %}
+        {% if error %}
+        <div class="alert alert-error">
+            {{ error }}
+        </div>
+        {% endif %}
 
-    <div style="margin-bottom: 22px;">
-        <label class="form-label" style="font-size: 0.8125rem; text-transform: uppercase; color: var(--text-muted);">Quick Benchmark Presets</label>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            {% for preset in presets %}
-            <button
-                type="button"
-                class="btn btn-secondary btn-sm"
-                onclick="setPreset('{{ preset.start|escapejs }}', '{{ preset.end|escapejs }}')">
-                {{ preset.title }}
+        <div style="margin-bottom: 22px;">
+            <label class="form-label" style="font-size: 0.8125rem; font-weight: 600; color: var(--text-muted);">Quick Benchmark Presets</label>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                {% for preset in presets %}
+                <button
+                    type="button"
+                    class="btn btn-secondary btn-sm"
+                    onclick="setPreset('{{ preset.start|escapejs }}', '{{ preset.end|escapejs }}')">
+                    {{ preset.title }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <form method="post" action="{% url 'home' %}">
+            {% csrf_token %}
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="start" class="form-label">Origin (City, State or Address)</label>
+                    <input
+                        type="text"
+                        id="start"
+                        name="start"
+                        class="form-control"
+                        placeholder="e.g. Chicago, IL"
+                        value="{{ start }}"
+                        required>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="end" class="form-label">Destination (City, State or Address)</label>
+                    <input
+                        type="text"
+                        id="end"
+                        name="end"
+                        class="form-control"
+                        placeholder="e.g. Dallas, TX"
+                        value="{{ end }}"
+                        required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.9375rem;">
+                Calculate Fuel-Optimal Route &rarr;
             </button>
-            {% endfor %}
-        </div>
+        </form>
     </div>
-
-    <form method="post" action="{% url 'home' %}">
-        {% csrf_token %}
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px;">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="start" class="form-label">Origin (City, State or Address)</label>
-                <input
-                    type="text"
-                    id="start"
-                    name="start"
-                    class="form-control"
-                    placeholder="e.g. Chicago, IL"
-                    value="{{ start }}"
-                    required>
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="end" class="form-label">Destination (City, State or Address)</label>
-                <input
-                    type="text"
-                    id="end"
-                    name="end"
-                    class="form-control"
-                    placeholder="e.g. Dallas, TX"
-                    value="{{ end }}"
-                    required>
-            </div>
-        </div>
-
-        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.9375rem;">
-            Calculate Fuel-Optimal Route &rarr;
-        </button>
-    </form>
 </div>
 
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h2 class="card-title" style="margin-bottom: 0;">Recent Computed Trips</h2>
         <span style="font-size: 0.8125rem; color: var(--text-muted);">
-            Total Saved Plans: <strong id="total-trips-stat">{{ total_trips }}</strong>
+            Total Saved Plans: <strong id="total-trips-stat" style="color: var(--text-main);">{{ total_trips }}</strong>
         </span>
     </div>
 
@@ -241,5 +280,52 @@
         div.innerText = text || '';
         return div.innerHTML;
     }
+
+    /* Infrequent Ambient Motion Controller for Hero Section */
+    (function() {
+        var ambientLayer = document.getElementById('hero-ambient');
+        if (!ambientLayer) return;
+
+        var lightPalettes = [
+            'radial-gradient(circle at 18% 28%, rgba(37, 99, 235, 0.13) 0%, transparent 55%), radial-gradient(circle at 82% 72%, rgba(99, 102, 241, 0.11) 0%, transparent 55%)',
+            'radial-gradient(circle at 75% 22%, rgba(14, 165, 233, 0.12) 0%, transparent 55%), radial-gradient(circle at 25% 78%, rgba(59, 130, 246, 0.10) 0%, transparent 55%)',
+            'radial-gradient(circle at 50% 80%, rgba(139, 92, 246, 0.11) 0%, transparent 55%), radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.12) 0%, transparent 55%)',
+            'radial-gradient(circle at 30% 70%, rgba(20, 184, 166, 0.11) 0%, transparent 55%), radial-gradient(circle at 70% 30%, rgba(99, 102, 241, 0.10) 0%, transparent 55%)',
+            'radial-gradient(circle at 85% 65%, rgba(245, 158, 11, 0.08) 0%, transparent 50%), radial-gradient(circle at 20% 35%, rgba(37, 99, 235, 0.12) 0%, transparent 55%)'
+        ];
+
+        var darkPalettes = [
+            'radial-gradient(circle at 18% 28%, rgba(59, 130, 246, 0.22) 0%, transparent 55%), radial-gradient(circle at 82% 72%, rgba(139, 92, 246, 0.18) 0%, transparent 55%)',
+            'radial-gradient(circle at 75% 22%, rgba(14, 165, 233, 0.20) 0%, transparent 55%), radial-gradient(circle at 25% 78%, rgba(59, 130, 246, 0.18) 0%, transparent 55%)',
+            'radial-gradient(circle at 50% 80%, rgba(168, 85, 247, 0.19) 0%, transparent 55%), radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.20) 0%, transparent 55%)',
+            'radial-gradient(circle at 30% 70%, rgba(20, 184, 166, 0.18) 0%, transparent 55%), radial-gradient(circle at 70% 30%, rgba(99, 102, 241, 0.18) 0%, transparent 55%)',
+            'radial-gradient(circle at 85% 65%, rgba(245, 158, 11, 0.15) 0%, transparent 50%), radial-gradient(circle at 20% 35%, rgba(59, 130, 246, 0.22) 0%, transparent 55%)'
+        ];
+
+        var currentIndex = 0;
+
+        function shiftAmbientHues() {
+            var theme = document.documentElement.getAttribute('data-theme') || 'light';
+            var palettes = (theme === 'dark') ? darkPalettes : lightPalettes;
+            var nextIndex = (currentIndex + 1) % palettes.length;
+            currentIndex = nextIndex;
+            ambientLayer.style.background = palettes[nextIndex];
+        }
+
+        function scheduleNextShift() {
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                return;
+            }
+            // Randomized gap of 10 to 15 seconds rest before the next slow 7s glide
+            var randomRestGapMs = 10000 + Math.floor(Math.random() * 5000);
+            setTimeout(function() {
+                shiftAmbientHues();
+                scheduleNextShift();
+            }, randomRestGapMs);
+        }
+
+        scheduleNextShift();
+    })();
 </script>
 {% endblock %}
+

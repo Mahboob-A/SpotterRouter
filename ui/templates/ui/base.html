@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}SpotterRouter - Intelligent Fuel Route Planner{% endblock %}</title>
+    <script>
+        (function() {
+            var saved = localStorage.getItem('spotterrouter_theme');
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var theme = saved ? saved : (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <style>
         :root {
@@ -12,21 +20,82 @@
             --primary-light: #eff6ff;
             --bg-color: #f8fafc;
             --card-bg: #ffffff;
+            --card-subtle: #f8fafc;
             --text-main: #0f172a;
             --text-muted: #64748b;
             --border-color: #e2e8f0;
+            --border-subtle: #f1f5f9;
             --danger-bg: #fef2f2;
             --danger-text: #b91c1c;
             --danger-border: #fecaca;
             --success-bg: #f0fdf4;
             --success-text: #15803d;
-            --accent-amber: #f59e0b;
+            --success-border: #bbf7d0;
+            --accent-amber: #d97706;
+            --grid-line: rgba(15, 23, 42, 0.07);
+            --input-bg: #ffffff;
+            --input-border: #cbd5e1;
+            --table-header-bg: #f8fafc;
+            --table-hover-bg: #f8fafc;
+            --btn-secondary-bg: #f1f5f9;
+            --btn-secondary-hover: #e2e8f0;
+            --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04);
+            --shadow-toast: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
         }
+
+        [data-theme="dark"] {
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --primary-light: rgba(59, 130, 246, 0.15);
+            --bg-color: #0b0f19;
+            --card-bg: #131b2e;
+            --card-subtle: #19233c;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #243049;
+            --border-subtle: #1a253a;
+            --danger-bg: rgba(239, 68, 68, 0.12);
+            --danger-text: #fca5a5;
+            --danger-border: rgba(239, 68, 68, 0.3);
+            --success-bg: rgba(16, 185, 129, 0.12);
+            --success-text: #34d399;
+            --success-border: rgba(16, 185, 129, 0.3);
+            --accent-amber: #fbbf24;
+            --grid-line: rgba(255, 255, 255, 0.08);
+            --input-bg: #19233c;
+            --input-border: #2d3b55;
+            --table-header-bg: #19233c;
+            --table-hover-bg: #1c2742;
+            --btn-secondary-bg: #19233c;
+            --btn-secondary-hover: #243049;
+            --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
+            --shadow-toast: 0 10px 20px rgba(0, 0, 0, 0.5);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
+
+        ::selection {
+            background-color: var(--primary);
+            color: #ffffff;
+        }
+
+        input, select, textarea {
+            caret-color: var(--primary);
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        table td, table th, .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
@@ -35,12 +104,16 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
+
         header {
             background-color: var(--card-bg);
             border-bottom: 1px solid var(--border-color);
             padding: 16px 24px;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
         }
+
         .header-content {
             max-width: 1100px;
             margin: 0 auto;
@@ -48,10 +121,12 @@
             justify-content: space-between;
             align-items: center;
         }
+
         .brand {
             display: flex;
             flex-direction: column;
         }
+
         .brand a {
             text-decoration: none;
             color: var(--primary);
@@ -59,11 +134,19 @@
             font-weight: 800;
             letter-spacing: -0.03em;
         }
+
         .brand-subtitle {
             font-size: 0.8125rem;
             color: var(--text-muted);
             font-weight: 500;
         }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .nav-links a {
             color: var(--text-muted);
             text-decoration: none;
@@ -73,10 +156,40 @@
             border-radius: 6px;
             transition: all 0.15s ease-in-out;
         }
+
         .nav-links a:hover {
             color: var(--primary);
             background-color: var(--primary-light);
         }
+
+        .theme-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background-color: var(--btn-secondary-bg);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            line-height: 1;
+        }
+
+        .theme-toggle-btn:hover {
+            color: var(--text-main);
+            border-color: var(--primary);
+            background-color: var(--primary-light);
+        }
+
+        .theme-icon {
+            display: inline-block;
+            vertical-align: middle;
+            stroke-width: 2;
+        }
+
         main {
             flex: 1;
             max-width: 1100px;
@@ -84,14 +197,17 @@
             margin: 0 auto;
             padding: 28px 16px;
         }
+
         .card {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 10px;
             padding: 24px;
             margin-bottom: 24px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            box-shadow: var(--shadow-card);
+            transition: background-color 0.2s ease, border-color 0.2s ease;
         }
+
         .card-title {
             font-size: 1.1875rem;
             font-weight: 700;
@@ -99,17 +215,20 @@
             color: var(--text-main);
             letter-spacing: -0.01em;
         }
+
         .alert {
             padding: 12px 16px;
             border-radius: 6px;
             margin-bottom: 16px;
             font-size: 0.875rem;
         }
+
         .alert-error {
             background-color: var(--danger-bg);
             color: var(--danger-text);
             border: 1px solid var(--danger-border);
         }
+
         .btn {
             display: inline-flex;
             align-items: center;
@@ -121,30 +240,38 @@
             cursor: pointer;
             text-decoration: none;
             border: none;
-            transition: background-color 0.15s ease-in-out, transform 0.05s ease;
+            transition: background-color 0.15s ease-in-out, transform 0.05s ease, border-color 0.15s ease;
         }
+
         .btn:active {
             transform: translateY(1px);
         }
+
         .btn-primary {
             background-color: var(--primary);
             color: #ffffff;
         }
+
         .btn-primary:hover {
             background-color: var(--primary-hover);
         }
+
         .btn-secondary {
-            background-color: #f1f5f9;
+            background-color: var(--btn-secondary-bg);
             color: var(--text-main);
             border: 1px solid var(--border-color);
         }
+
         .btn-secondary:hover {
-            background-color: #e2e8f0;
+            background-color: var(--btn-secondary-hover);
+            border-color: var(--primary);
         }
+
         .btn-sm {
             padding: 6px 12px;
             font-size: 0.8125rem;
         }
+
         .badge {
             display: inline-flex;
             align-items: center;
@@ -153,17 +280,23 @@
             font-size: 0.75rem;
             font-weight: 600;
         }
+
         .badge-blue {
-            background-color: #dbeafe;
-            color: #1e40af;
+            background-color: var(--primary-light);
+            color: var(--primary);
+            border: 1px solid rgba(37, 99, 235, 0.2);
         }
+
         .badge-green {
-            background-color: #dcfce7;
-            color: #166534;
+            background-color: var(--success-bg);
+            color: var(--success-text);
+            border: 1px solid var(--success-border);
         }
+
         .form-group {
             margin-bottom: 16px;
         }
+
         .form-label {
             display: block;
             font-size: 0.875rem;
@@ -171,38 +304,46 @@
             margin-bottom: 6px;
             color: var(--text-main);
         }
+
         .form-control {
             width: 100%;
             padding: 10px 14px;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--input-border);
             border-radius: 6px;
             font-size: 0.875rem;
-            background-color: #ffffff;
+            background-color: var(--input-bg);
+            color: var(--text-main);
             transition: border-color 0.15s, box-shadow 0.15s;
         }
+
         .form-control:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.875rem;
         }
+
         th, td {
             text-align: left;
             padding: 12px 14px;
             border-bottom: 1px solid var(--border-color);
         }
+
         th {
-            background-color: #f8fafc;
+            background-color: var(--table-header-bg);
             font-weight: 600;
             color: var(--text-muted);
         }
+
         tr:hover td {
-            background-color: #f8fafc;
+            background-color: var(--table-hover-bg);
         }
+
         footer {
             background-color: var(--card-bg);
             border-top: 1px solid var(--border-color);
@@ -210,8 +351,9 @@
             text-align: center;
             font-size: 0.8125rem;
             color: var(--text-muted);
+            transition: background-color 0.2s ease, border-color 0.2s ease;
         }
-        /* Global Toast Container */
+
         #toast-container {
             position: fixed;
             bottom: 24px;
@@ -222,18 +364,21 @@
             gap: 8px;
             pointer-events: none;
         }
+
         .toast {
-            background-color: #0f172a;
-            color: #ffffff;
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
             padding: 10px 18px;
             border-radius: 8px;
             font-size: 0.875rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow-toast);
             opacity: 0;
             transform: translateY(12px);
             transition: all 0.25s ease-out;
             pointer-events: auto;
         }
+
         .toast.show {
             opacity: 1;
             transform: translateY(0);
@@ -250,6 +395,23 @@
             </div>
             <nav class="nav-links">
                 <a href="{% url 'locations' %}">Locations</a>
+                <button id="theme-toggle" class="theme-toggle-btn" type="button" onclick="toggleTheme()" aria-label="Toggle theme">
+                    <svg id="theme-icon-moon" class="theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="theme-icon-sun" class="theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: none;">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <span id="theme-text">Dark</span>
+                </button>
             </nav>
         </div>
     </header>
@@ -266,6 +428,38 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
+        function updateThemeUI(theme) {
+            var moonIcon = document.getElementById('theme-icon-moon');
+            var sunIcon = document.getElementById('theme-icon-sun');
+            var themeText = document.getElementById('theme-text');
+            if (!themeText) return;
+
+            if (theme === 'dark') {
+                if (moonIcon) moonIcon.style.display = 'none';
+                if (sunIcon) sunIcon.style.display = 'inline-block';
+                themeText.textContent = 'Light';
+            } else {
+                if (moonIcon) moonIcon.style.display = 'inline-block';
+                if (sunIcon) sunIcon.style.display = 'none';
+                themeText.textContent = 'Dark';
+            }
+        }
+
+        function toggleTheme() {
+            var current = document.documentElement.getAttribute('data-theme') || 'light';
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            try {
+                localStorage.setItem('spotterrouter_theme', next);
+            } catch (e) {}
+            updateThemeUI(next);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var current = document.documentElement.getAttribute('data-theme') || 'light';
+            updateThemeUI(current);
+        });
+
         function showToast(message) {
             var container = document.getElementById('toast-container');
             if (!container) return;
@@ -289,3 +483,4 @@
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>
+

@@ -7,7 +7,7 @@ Intelligent Long-Haul Fuel Route Optimization Engine for Contiguous US Commercia
 [![PostgreSQL 17 / PostGIS 3.5](https://img.shields.io/badge/PostGIS-17--3.5-336791.svg?logo=postgresql&logoColor=white)](https://postgis.net/)
 [![Redis 8](https://img.shields.io/badge/Redis-8.0-DC382D.svg?logo=redis&logoColor=white)](https://redis.io/)
 [![Celery 5.5](https://img.shields.io/badge/Celery-5.5-37814A.svg?logo=celery&logoColor=white)](https://docs.celeryq.dev/)
-[![Tests Passed](https://img.shields.io/badge/Tests-228%20Passed-22c55e.svg?logo=pytest&logoColor=white)](docs/08-Preparation-and-testing/testing-strategy-and-quality-checks.md)
+[![Tests Passed](https://img.shields.io/badge/Tests-230%20Passed-22c55e.svg?logo=pytest&logoColor=white)](docs/08-Preparation-and-testing/testing-strategy-and-quality-checks.md)
 [![Mypy Strict](https://img.shields.io/badge/Types-Mypy%20Strict-2563eb.svg)](docs/08-Preparation-and-testing/testing-strategy-and-quality-checks.md)
 [![Ruff Lint](https://img.shields.io/badge/Linter-Ruff-261230.svg?logo=ruff&logoColor=white)](docs/08-Preparation-and-testing/testing-strategy-and-quality-checks.md)
 [![OpenAPI 3.0](https://img.shields.io/badge/OpenAPI-3.0.3-6BA539.svg?logo=openapi-initiative&logoColor=white)](fuel-router.openapi.yaml)
@@ -47,7 +47,7 @@ For thorough explanations of design choices, math, tradeoffs, infrastructure, an
 - **[05 Production deployments](docs/05-Deployments/)**: Dokploy platform deployment, Traefik edge ingress, automated SSL, secret management, and zero-downtime rolling releases.
 - **[06 Brainstorming and failed paths](docs/06-Brainstorming-and-failed-paths/)**: First attempts that did not work (midpoint stops, unindexed bounding boxes, full-tank fills) and why the final approach succeeded.
 - **[07 What I learned](docs/07-Learning-journey/)**: Personal engineering reflections on PostGIS spatial queries, greedy algorithms, and US freight logistics.
-- **[08 Preparation and engineering standards](docs/08-Preparation-and-testing/)**: Implementation roadmap, 228 automated tests, strict static typing, and Docker container parity.
+- **[08 Preparation and engineering standards](docs/08-Preparation-and-testing/)**: Implementation roadmap, 230 automated tests, strict static typing, and Docker container parity.
 
 ---
 
@@ -208,14 +208,14 @@ Real sample response (`HTTP/1.1 200 OK`):
 ## Quality Assurance & Testing
 
 ```bash
-# Run the complete test suite (228 tests, 100% offline, zero external API calls)
+# Run the complete test suite (230 tests, 100% offline, zero external API calls)
 make test
 
 # Run Ruff linter and strict Mypy type validation
 make lint
 ```
 
-- **Test Coverage**: 228 automated pytest unit and integration tests passing in under 5 seconds.
+- **Test Coverage**: 230 automated pytest unit and integration tests passing in under 6 seconds.
 - **Type Safety**: Strict Mypy compliance across all 102 Python source files with zero errors.
 - **Code Standards**: Ruff linting clean across the entire repository.
 

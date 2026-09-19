@@ -276,3 +276,28 @@ def test_unsupported_method_trips(api_client: APIClient) -> None:
     data = response.json()
     assert data["error"] == "method_not_allowed"
     assert "detail" in data
+
+
+def test_health_check_returns_ok(api_client: APIClient) -> None:
+    url = reverse("health-check")
+    response = api_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response["Content-Type"].startswith("application/json")
+    assert response.json() == {"status": "ok"}
+
+
+def test_health_check_disables_browsable_api_ui_on_html_accept(
+    api_client: APIClient,
+) -> None:
+    url = reverse("health-check")
+    response = api_client.get(
+        url,
+        HTTP_ACCEPT="text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response["Content-Type"].startswith("application/json")
+    assert response.json() == {"status": "ok"}
+    assert b"Django REST framework" not in response.content
+

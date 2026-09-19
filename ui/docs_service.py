@@ -325,7 +325,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
                 "title": "Testing Strategy and Quality Checks",
                 "filename": "testing-strategy-and-quality-checks.md",
                 "summary": (
-                    "Overview of 228 unit and integration tests, strict Mypy types, "
+                    "Overview of 230 unit and integration tests, strict Mypy types, "
                     "Ruff linting, and Docker container parity."
                 ),
             },

@@ -22,6 +22,7 @@ print(Station.objects.count())
         python manage.py import_stations dataset/fuel-prices-for-be-assessment.csv || true
         python manage.py load_stations || true
         python manage.py geocode_stations || true
+        python manage.py import_daily_prices dataset/fuel-prices-for-be-assessment.csv --version-code=OPIS-INITIAL || true
         echo "Initial station data loading complete."
     else
         echo "Station dataset already loaded ($STATION_COUNT stations present)."

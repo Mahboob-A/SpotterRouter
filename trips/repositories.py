@@ -19,6 +19,7 @@ class TripPlanRepository(BaseRepository[TripPlan]):
             return None
         return (
             self.model.objects.filter(pk=object_id)
+            .select_related("pricing_dataset")
             .prefetch_related("fuel_stops__station")
             .first()
         )
@@ -26,6 +27,7 @@ class TripPlanRepository(BaseRepository[TripPlan]):
     def get_by_cache_key(self, cache_key: str) -> TripPlan | None:
         return (
             self.model.objects.filter(cache_key=cache_key)
+            .select_related("pricing_dataset")
             .prefetch_related("fuel_stops__station")
             .first()
         )
@@ -42,9 +44,9 @@ class TripPlanRepository(BaseRepository[TripPlan]):
 
     def list_recent(self, limit: int = 20, offset: int = 0) -> list[TripPlan]:
         return list(
-            self.model.objects.all().prefetch_related("fuel_stops__station")[
-                offset : offset + limit
-            ]
+            self.model.objects.all()
+            .select_related("pricing_dataset")
+            .prefetch_related("fuel_stops__station")[offset : offset + limit]
         )
 
     def count_total(self) -> int:

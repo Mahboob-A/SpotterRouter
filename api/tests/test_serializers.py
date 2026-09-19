@@ -146,6 +146,8 @@ def test_trip_plan_response_serializer() -> None:
     assert data["total_cost"] == Decimal("341.52")
     assert data["ai_explanation"] is None
     assert "created_at" in data
+    assert "dataset_version" in data
+    assert data["dataset_version"] is None
 
     # Route geometry should be a GeoJSON LineString dictionary
     assert isinstance(data["route_geometry"], dict)
@@ -184,5 +186,7 @@ def test_trip_plan_list_serializer() -> None:
     assert data["total_distance_miles"] == Decimal("967.30")
     assert data["total_cost"] == Decimal("341.52")
     assert "created_at" in data
+    assert "dataset_version" in data
+    assert data["dataset_version"] is None
     assert "route_geometry" not in data
     assert "fuel_stops" not in data

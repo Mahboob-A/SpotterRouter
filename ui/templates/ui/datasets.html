@@ -1,0 +1,248 @@
+{% extends "ui/base.html" %}
+
+{% block title %}Fuel Pricing Datasets - SpotterRouter{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div class="badge badge-blue" style="margin-bottom: 8px;">Dataset Management</div>
+            <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">
+                Fuel Pricing Datasets &amp; Ingestion
+            </h1>
+            <p style="color: var(--text-muted); font-size: 0.875rem; max-width: 72ch; line-height: 1.5; margin: 0;">
+                Manage versioned OPIS retail pricing files stored under <code>./dataset/</code>. Upload new CSV snapshots to test route computations against shifting market fuel rates. Files are processed locally for this assessment and versions are tracked atomically.
+            </p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <a href="{% url 'home' %}" class="btn btn-secondary btn-sm">&larr; Route Planner</a>
+        </div>
+    </div>
+</div>
+
+<!-- Active Dataset Status Banner -->
+{% if active_dataset %}
+<div class="card" style="margin-bottom: 24px; padding: 20px; background: var(--card-subtle);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary);">
+                Active Routing Dataset
+            </span>
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+                <span style="font-size: 1.25rem; font-weight: 700; color: var(--text-main);">{{ active_dataset.version_code }}</span>
+                <span class="badge badge-green">Active Engine Rate</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.8125rem; margin-top: 4px; margin-bottom: 0;">
+                File: <code>{{ active_dataset.filename }}</code> &bull; {{ active_dataset.station_count }} stations &bull; Min: ${{ active_dataset.min_price }} &bull; Max: ${{ active_dataset.max_price }}
+            </p>
+        </div>
+        <div style="text-align: right;">
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Activated / Registered:</span>
+            <div class="tabular-nums" style="font-size: 0.8125rem; font-weight: 600; color: var(--text-main);">
+                {{ active_dataset.created_at|date:"Y-m-d H:i" }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; margin-bottom: 24px;">
+    <!-- Upload New Dataset Card -->
+    <div class="card" style="margin-bottom: 0;">
+        <h2 class="card-title" style="margin-bottom: 8px;">Upload New CSV Dataset</h2>
+        <p style="color: var(--text-muted); font-size: 0.8125rem; margin-bottom: 18px; line-height: 1.4;">
+            Upload an OPIS-formatted CSV file. Files are automatically saved to <code>./dataset/</code> and parsed locally into dedicated station pricing snapshots.
+        </p>
+
+        <form method="post" enctype="multipart/form-data" action="{% url 'datasets' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload">
+
+            <div class="form-group">
+                <label for="dataset_file" class="form-label">CSV File</label>
+                <input
+                    type="file"
+                    id="dataset_file"
+                    name="dataset_file"
+                    class="form-control"
+                    accept=".csv"
+                    required>
+                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 4px;">
+                    Must include OPIS Truckstop ID, Truckstop Name, Address, City, State, Retail Price
+                </span>
+            </div>
+
+            <div class="form-group">
+                <label for="version_code" class="form-label">Version Code (Optional)</label>
+                <input
+                    type="text"
+                    id="version_code"
+                    name="version_code"
+                    class="form-control"
+                    placeholder="e.g. OPIS-2026-09-20">
+                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 4px;">
+                    Leave blank to auto-generate from current date
+                </span>
+            </div>
+
+            <div class="form-group">
+                <label for="description" class="form-label">Description / Notes (Optional)</label>
+                <input
+                    type="text"
+                    id="description"
+                    name="description"
+                    class="form-control"
+                    placeholder="e.g. Weekend morning fuel survey">
+            </div>
+
+            <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 12px;">
+                <input type="checkbox" id="set_active" name="set_active" checked style="cursor: pointer;">
+                <label for="set_active" style="font-size: 0.875rem; font-weight: 500; cursor: pointer; color: var(--text-main); margin-bottom: 0;">
+                    Make active immediately for new route computations
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
+                Upload &amp; Process Dataset
+            </button>
+        </form>
+    </div>
+
+    <!-- Local Filesystem Explorer (./dataset/) Card -->
+    <div class="card" style="margin-bottom: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h2 class="card-title" style="margin-bottom: 0;">Local Files in <code>./dataset/</code></h2>
+            <span class="badge" style="background-color: var(--card-subtle); color: var(--text-muted); border: 1px solid var(--border-color);">
+                {{ disk_files|length }} File{{ disk_files|length|pluralize }}
+            </span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.8125rem; margin-bottom: 16px; line-height: 1.4;">
+            Files detected directly on disk. You can place CSV files into the <code>./dataset/</code> folder manually or via CLI and ingest them with a single click.
+        </p>
+
+        {% if disk_files %}
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            {% for file in disk_files %}
+            <div style="padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--card-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div>
+                    <div style="font-weight: 600; font-size: 0.875rem; color: var(--text-main); word-break: break-all;">
+                        {{ file.filename }}
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                        <span class="tabular-nums">{{ file.size_display }}</span> &bull;
+                        Modified {{ file.modified_at|date:"Y-m-d H:i" }}
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    {% if file.is_active %}
+                        <span class="badge badge-green">[ACTIVE]</span>
+                    {% elif file.is_ingested %}
+                        <span class="badge" style="background-color: var(--border-color); color: var(--text-main);">Ingested</span>
+                        <form method="post" action="{% url 'datasets' %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="ingest_disk">
+                            <input type="hidden" name="filename" value="{{ file.filename }}">
+                            <button type="submit" class="btn btn-secondary btn-sm" title="Re-activate this dataset version">
+                                Make Active
+                            </button>
+                        </form>
+                    {% else %}
+                        <span class="badge" style="background-color: var(--danger-bg); color: var(--accent-amber); border: 1px solid var(--border-color);">Pending</span>
+                        <form method="post" action="{% url 'datasets' %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="ingest_disk">
+                            <input type="hidden" name="filename" value="{{ file.filename }}">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                Ingest &amp; Activate
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="color: var(--text-muted); font-size: 0.875rem;">
+            No CSV files found in <code>./dataset/</code> directory.
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Registered Datasets Registry Table -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 class="card-title" style="margin-bottom: 0;">Registered Datasets Registry</h2>
+        <span style="font-size: 0.8125rem; color: var(--text-muted);">
+            Total: {{ registered_datasets|length }} Version{{ registered_datasets|length|pluralize }}
+        </span>
+    </div>
+
+    {% if registered_datasets %}
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Version Code</th>
+                    <th>Source File</th>
+                    <th>Stations</th>
+                    <th>Price Range</th>
+                    <th>Status</th>
+                    <th>Registered At</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ds in registered_datasets %}
+                <tr>
+                    <td>
+                        <strong>{{ ds.version_code }}</strong>
+                        {% if ds.description %}
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal; margin-top: 2px;">
+                            {{ ds.description }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td><code>{{ ds.filename }}</code></td>
+                    <td class="tabular-nums">{{ ds.station_count }}</td>
+                    <td class="tabular-nums">
+                        {% if ds.min_price and ds.max_price %}
+                        ${{ ds.min_price }} - ${{ ds.max_price }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ds.is_active %}
+                        <span class="badge badge-green">Active Engine</span>
+                        {% else %}
+                        <span class="badge" style="background-color: var(--card-subtle); color: var(--text-muted); border: 1px solid var(--border-color);">Archived</span>
+                        {% endif %}
+                    </td>
+                    <td class="tabular-nums">{{ ds.created_at|date:"Y-m-d H:i" }}</td>
+                    <td>
+                        {% if not ds.is_active %}
+                        <form method="post" action="{% url 'datasets' %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="activate">
+                            <input type="hidden" name="dataset_id" value="{{ ds.id }}">
+                            <button type="submit" class="btn btn-secondary btn-sm">
+                                Activate
+                            </button>
+                        </form>
+                        {% else %}
+                        <span style="font-size: 0.8125rem; color: var(--success-text); font-weight: 600;">In Use</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: var(--text-muted); font-size: 0.875rem;">
+        No datasets registered yet.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

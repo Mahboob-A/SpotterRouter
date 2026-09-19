@@ -1,6 +1,12 @@
 from django.urls import path
 
-from ui.views import HomeView, LocationsView, RecentTripsApiView, TripDetailView
+from ui.views import (
+    DatasetsView,
+    HomeView,
+    LocationsView,
+    RecentTripsApiView,
+    TripDetailView,
+)
 
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
@@ -18,5 +24,10 @@ urlpatterns = [
         "locations/",
         LocationsView.as_view(),
         name="locations",
+    ),
+    path(
+        "datasets/",
+        DatasetsView.as_view(),
+        name="datasets",
     ),
 ]

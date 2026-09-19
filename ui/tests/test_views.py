@@ -296,12 +296,14 @@ def test_dark_mode_toggle_present_after_locations(client: Client, db: None) -> N
     assert "🌙" not in content
     assert "☀️" not in content
 
-    # Verify placement: Locations link must appear before theme-toggle in nav
+    # Verify navigation order: Locations -> Add Dataset -> theme toggle
     loc_pos = content.find(reverse("locations"))
+    ds_pos = content.find(reverse("datasets"))
     toggle_pos = content.find('id="theme-toggle"')
     assert loc_pos != -1
+    assert ds_pos != -1
     assert toggle_pos != -1
-    assert loc_pos < toggle_pos
+    assert loc_pos < ds_pos < toggle_pos
 
 
 def test_base_contains_fouc_prevention_script(client: Client, db: None) -> None:
@@ -329,3 +331,175 @@ def test_hero_ambient_and_grid_markup(client: Client, db: None) -> None:
     assert "Quick Benchmark Presets" in content
     assert "shiftAmbientHues" in content
 
+
+def test_datasets_view_get_renders_successfully(client: Client, db: None) -> None:
+    from stations.models import PricingDataset
+
+    PricingDataset.objects.create(
+        version_code="TEST-UI-DS-1",
+        filename="test_ds.csv",
+        file_hash="hash_ui_ds_1",
+        station_count=100,
+        is_active=True,
+    )
+
+    url = reverse("datasets")
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert "disk_files" in response.context
+    assert "registered_datasets" in response.context
+    assert "active_dataset" in response.context
+    content = response.content.decode()
+    assert "Fuel Pricing Datasets &amp; Ingestion" in content
+    assert "Upload New CSV Dataset" in content
+    assert "TEST-UI-DS-1" in content
+
+
+def test_datasets_view_post_upload_valid_csv(client: Client, db: None) -> None:
+    from pathlib import Path
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from stations.models import PricingDataset
+    from stations.tests.test_dataset_service import SAMPLE_CSV
+
+    uploaded_filename = "test_uploaded_temp.csv"
+    created_path = Path("dataset") / uploaded_filename
+    try:
+        uploaded = SimpleUploadedFile(
+            uploaded_filename,
+            SAMPLE_CSV.encode("utf-8"),
+            content_type="text/csv",
+        )
+        url = reverse("datasets")
+        response = client.post(
+            url,
+            {
+                "action": "upload",
+                "dataset_file": uploaded,
+                "version_code": "UPLOAD-V1",
+                "description": "Test upload",
+                "set_active": "on",
+            },
+        )
+
+        assert response.status_code == 302
+        assert response["Location"] == reverse("datasets")
+
+        ds = PricingDataset.objects.filter(version_code="UPLOAD-V1").first()
+        assert ds is not None
+        assert ds.is_active is True
+        assert ds.station_count == 3
+    finally:
+        created_path.unlink(missing_ok=True)
+
+
+def test_datasets_view_post_upload_invalid_file(client: Client, db: None) -> None:
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    uploaded = SimpleUploadedFile(
+        "invalid_file.txt",
+        b"Not a CSV",
+        content_type="text/plain",
+    )
+    url = reverse("datasets")
+    response = client.post(
+        url,
+        {
+            "action": "upload",
+            "dataset_file": uploaded,
+        },
+    )
+    assert response.status_code == 302
+
+
+def test_datasets_view_post_activate(client: Client, db: None) -> None:
+    from stations.models import PricingDataset
+
+    d1 = PricingDataset.objects.create(
+        version_code="OLD-DS",
+        filename="old.csv",
+        file_hash="hash_old",
+        station_count=10,
+        is_active=True,
+    )
+    d2 = PricingDataset.objects.create(
+        version_code="NEW-DS",
+        filename="new.csv",
+        file_hash="hash_new",
+        station_count=20,
+        is_active=False,
+    )
+
+    url = reverse("datasets")
+    response = client.post(
+        url,
+        {
+            "action": "activate",
+            "dataset_id": str(d2.id),
+        },
+    )
+    assert response.status_code == 302
+    d1.refresh_from_db()
+    d2.refresh_from_db()
+    assert d2.is_active is True
+    assert d1.is_active is False
+
+
+def test_recent_trips_api_view_includes_dataset_version(
+    client: Client, db: None
+) -> None:
+    from stations.models import PricingDataset
+
+    ds = PricingDataset.objects.create(
+        version_code="OPIS-2026-TESTVER",
+        filename="test.csv",
+        file_hash="hash_testver",
+        station_count=50,
+        is_active=True,
+    )
+    TripPlan.objects.create(
+        start_input="Chicago, IL",
+        end_input="Dallas, TX",
+        start_point=Point(-87.6, 41.8, srid=4326),
+        end_point=Point(-96.8, 32.7, srid=4326),
+        route_geometry=LineString([(-87.6, 41.8), (-96.8, 32.7)], srid=4326),
+        total_distance_miles=Decimal("500.00"),
+        total_gallons=Decimal("50.000"),
+        total_cost=Decimal("150.00"),
+        cache_key="api_version_test_key",
+        pricing_dataset=ds,
+    )
+
+    url = reverse("recent-trips")
+    response = client.get(url, {"offset": 0, "limit": 5})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["trips"]) >= 1
+    assert data["trips"][0]["dataset_version"] == "OPIS-2026-TESTVER"
+
+
+def test_trip_detail_view_shows_dataset_version_badge(
+    client: Client, sample_trip_plan: TripPlan
+) -> None:
+    from stations.models import PricingDataset
+
+    ds = PricingDataset.objects.create(
+        version_code="OPIS-DETAIL-V1",
+        filename="detail.csv",
+        file_hash="hash_detail_1",
+        station_count=100,
+        is_active=True,
+    )
+    sample_trip_plan.pricing_dataset = ds
+    sample_trip_plan.save(update_fields=["pricing_dataset"])
+
+    url = reverse("trip-detail", kwargs={"trip_id": sample_trip_plan.id})
+    response = client.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Pricing Dataset:" in content
+    assert "OPIS-DETAIL-V1" in content

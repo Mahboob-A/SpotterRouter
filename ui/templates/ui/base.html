@@ -395,6 +395,7 @@
             </div>
             <nav class="nav-links">
                 <a href="{% url 'locations' %}">Locations</a>
+                <a href="{% url 'datasets' %}">Add Dataset</a>
                 <button id="theme-toggle" class="theme-toggle-btn" type="button" onclick="toggleTheme()" aria-label="Toggle theme">
                     <svg id="theme-icon-moon" class="theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -479,6 +480,14 @@
                 }, 250);
             }, 2500);
         }
+
+        {% if messages %}
+        document.addEventListener('DOMContentLoaded', function() {
+            {% for message in messages %}
+            showToast("{{ message|escapejs }}");
+            {% endfor %}
+        });
+        {% endif %}
     </script>
     {% block extra_scripts %}{% endblock %}
 </body>

@@ -61,6 +61,9 @@ class FuelStopResponseSerializer(serializers.ModelSerializer):  # type: ignore[m
 
 
 class TripPlanResponseSerializer(serializers.ModelSerializer):  # type: ignore[misc]
+    dataset_version = serializers.CharField(
+        source="pricing_dataset.version_code", read_only=True, default=None
+    )
     route_geometry = serializers.SerializerMethodField()
     fuel_stops = FuelStopResponseSerializer(many=True, read_only=True)
     total_distance_miles = serializers.DecimalField(
@@ -85,6 +88,7 @@ class TripPlanResponseSerializer(serializers.ModelSerializer):  # type: ignore[m
             "id",
             "start_input",
             "end_input",
+            "dataset_version",
             "route_geometry",
             "total_distance_miles",
             "total_gallons",
@@ -117,6 +121,9 @@ class TripPlanResponseSerializer(serializers.ModelSerializer):  # type: ignore[m
 
 
 class TripPlanListSerializer(serializers.ModelSerializer):  # type: ignore[misc]
+    dataset_version = serializers.CharField(
+        source="pricing_dataset.version_code", read_only=True, default=None
+    )
     total_distance_miles = serializers.DecimalField(
         max_digits=8,
         decimal_places=2,
@@ -134,6 +141,7 @@ class TripPlanListSerializer(serializers.ModelSerializer):  # type: ignore[misc]
             "id",
             "start_input",
             "end_input",
+            "dataset_version",
             "total_distance_miles",
             "total_cost",
             "created_at",

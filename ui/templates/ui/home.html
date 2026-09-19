@@ -176,6 +176,7 @@
                     <th>Destination</th>
                     <th>Distance</th>
                     <th>Estimated Fuel Cost</th>
+                    <th>Dataset Version</th>
                     <th>Planned At</th>
                     <th>Action</th>
                 </tr>
@@ -185,9 +186,16 @@
                 <tr>
                     <td><strong>{{ trip.start_input }}</strong></td>
                     <td><strong>{{ trip.end_input }}</strong></td>
-                    <td>{{ trip.total_distance_miles }} mi</td>
+                    <td class="tabular-nums">{{ trip.total_distance_miles }} mi</td>
                     <td><span class="badge badge-green">${{ trip.total_cost }}</span></td>
-                    <td>{{ trip.created_at|date:"Y-m-d H:i" }}</td>
+                    <td>
+                        {% if trip.pricing_dataset %}
+                        <span class="badge badge-blue">{{ trip.pricing_dataset.version_code }}</span>
+                        {% else %}
+                        <span style="color: var(--text-muted);">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="tabular-nums">{{ trip.created_at|date:"Y-m-d H:i" }}</td>
                     <td>
                         <a href="{% url 'trip-detail' trip.id %}" class="btn btn-secondary btn-sm">
                             View Map
@@ -242,12 +250,16 @@
                 data.trips.forEach(function(trip) {
                     var tr = document.createElement('tr');
                     tr.className = 'fade-in-row';
+                    var versionBadge = (trip.dataset_version && trip.dataset_version !== '-')
+                        ? '<span class="badge badge-blue">' + escapeHtml(trip.dataset_version) + '</span>'
+                        : '<span style="color: var(--text-muted);">-</span>';
                     tr.innerHTML = 
                         '<td><strong>' + escapeHtml(trip.start_input) + '</strong></td>' +
                         '<td><strong>' + escapeHtml(trip.end_input) + '</strong></td>' +
-                        '<td>' + escapeHtml(trip.total_distance_miles) + ' mi</td>' +
+                        '<td class="tabular-nums">' + escapeHtml(trip.total_distance_miles) + ' mi</td>' +
                         '<td><span class="badge badge-green">$' + escapeHtml(trip.total_cost) + '</span></td>' +
-                        '<td>' + escapeHtml(trip.created_at) + '</td>' +
+                        '<td>' + versionBadge + '</td>' +
+                        '<td class="tabular-nums">' + escapeHtml(trip.created_at) + '</td>' +
                         '<td><a href="' + trip.detail_url + '" class="btn btn-secondary btn-sm">View Map</a></td>';
                     tbody.appendChild(tr);
                 });

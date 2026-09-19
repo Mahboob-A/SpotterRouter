@@ -2,6 +2,7 @@ import json
 import uuid
 from typing import Any
 
+from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, Min, Q
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
@@ -11,6 +12,8 @@ from django.views import View
 from core.constants import CONTIGUOUS_48_STATES
 from core.exceptions import FuelRouterError
 from stations.models import Station
+from stations.repositories import PricingDatasetRepository
+from stations.services import DatasetIngestionService
 from trips.repositories import TripPlanRepository
 from trips.services import TripPlanningService
 from ui.constants import PRESET_TRIP_PAIRS
@@ -116,6 +119,11 @@ class RecentTripsApiView(View):
                     "end_input": trip.end_input,
                     "total_distance_miles": str(trip.total_distance_miles),
                     "total_cost": str(trip.total_cost),
+                    "dataset_version": (
+                        trip.pricing_dataset.version_code
+                        if trip.pricing_dataset
+                        else "-"
+                    ),
                     "created_at": (
                         trip.created_at.strftime("%Y-%m-%d %H:%M")
                         if trip.created_at
@@ -216,9 +224,7 @@ class TripDetailView(View):
                     "state": stop.station.state,
                     "lat": lat,
                     "lng": lng,
-                    "distance_from_start_miles": float(
-                        stop.distance_from_start_miles
-                    ),
+                    "distance_from_start_miles": float(stop.distance_from_start_miles),
                     "gallons_purchased": float(stop.gallons_purchased),
                     "price_per_gallon": float(stop.price_per_gallon),
                     "cost": float(stop.cost),
@@ -241,3 +247,104 @@ class TripDetailView(View):
             "dest_lng": dest_lng,
         }
         return render(request, "ui/trip_detail.html", context)
+
+
+class DatasetsView(View):
+    """Presentation view for uploading, inspecting disk files, and managing datasets."""
+
+    def __init__(
+        self,
+        service: DatasetIngestionService | None = None,
+        repository: PricingDatasetRepository | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
+        self._service = service or DatasetIngestionService()
+        self._repository = repository or PricingDatasetRepository()
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        disk_files = self._service.scan_dataset_directory()
+        registered_datasets = list(self._repository.list_all())
+        active_dataset = self._repository.get_active()
+        context = {
+            "disk_files": disk_files,
+            "registered_datasets": registered_datasets,
+            "active_dataset": active_dataset,
+        }
+        return render(request, "ui/datasets.html", context)
+
+    def post(self, request: HttpRequest) -> HttpResponse:
+        action = request.POST.get("action", "").strip()
+
+        if action == "upload":
+            uploaded_file = request.FILES.get("dataset_file")
+            if not uploaded_file or not uploaded_file.name:
+                messages.error(request, "Please select a CSV file to upload.")
+                return redirect("datasets")
+
+            if not uploaded_file.name.endswith(".csv"):
+                messages.error(request, "Only CSV files are supported.")
+                return redirect("datasets")
+
+            version_code = request.POST.get("version_code", "").strip() or None
+            description = request.POST.get("description", "").strip()
+            set_active = request.POST.get("set_active") == "on"
+
+            try:
+                dataset = self._service.ingest(
+                    file_source=uploaded_file.read(),
+                    filename=uploaded_file.name,
+                    version_code=version_code,
+                    description=description,
+                    set_active=set_active,
+                )
+                messages.success(
+                    request,
+                    f"Successfully ingested dataset '{dataset.version_code}' "
+                    f"({dataset.station_count} stations).",
+                )
+            except Exception as exc:
+                messages.error(request, f"Failed to ingest dataset: {exc}")
+
+        elif action == "ingest_disk":
+            filename = request.POST.get("filename", "").strip()
+            if not filename:
+                messages.error(request, "Filename missing.")
+                return redirect("datasets")
+
+            target_path = self._service.get_dataset_directory() / filename
+            if not target_path.exists():
+                messages.error(request, f"File not found on disk: {filename}")
+                return redirect("datasets")
+
+            try:
+                dataset = self._service.ingest(
+                    file_source=target_path,
+                    filename=filename,
+                    set_active=True,
+                )
+                messages.success(
+                    request,
+                    f"Ingested and activated '{dataset.version_code}' "
+                    f"({dataset.station_count} stations).",
+                )
+            except Exception as exc:
+                messages.error(request, f"Failed to ingest disk dataset: {exc}")
+
+        elif action == "activate":
+            dataset_id = request.POST.get("dataset_id", "").strip()
+            if not dataset_id:
+                messages.error(request, "Dataset ID missing.")
+                return redirect("datasets")
+
+            try:
+                dataset = self._service.activate_dataset(dataset_id)
+                messages.success(
+                    request,
+                    f"Activated dataset '{dataset.version_code}' across "
+                    f"{dataset.station_count} stations.",
+                )
+            except Exception as exc:
+                messages.error(request, f"Failed to activate dataset: {exc}")
+
+        return redirect("datasets")

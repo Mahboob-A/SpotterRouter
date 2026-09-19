@@ -48,14 +48,21 @@
 <div class="card" style="border-left: 4px solid var(--primary);">
     <h2 class="card-title" style="margin-bottom: 8px;">AI Route Rationale (DeepSeek V4.1 Flash)</h2>
     {% if trip.ai_explanation %}
-    <p id="ai-explanation-text" style="color: #334155; line-height: 1.6; font-size: 0.9375rem;">
-        {{ trip.ai_explanation }}
-    </p>
+        {% if "unconfigured" in trip.ai_explanation|lower %}
+        <div id="ai-notice-box" style="padding: 12px 16px; background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; color: #475569; font-size: 0.875rem; line-height: 1.5;">
+            <strong>Notice:</strong> {{ trip.ai_explanation }}
+        </div>
+        {% else %}
+        <p id="ai-explanation-text" style="color: #334155; line-height: 1.6; font-size: 0.9375rem;">
+            {{ trip.ai_explanation }}
+        </p>
+        {% endif %}
     {% else %}
     <div id="ai-loading-box" style="display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.875rem;">
         <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: var(--primary); animation: pulse 1.5s infinite;"></span>
         <span>Generating AI explanation in background...</span>
     </div>
+    <div id="ai-notice-box" style="display: none; padding: 12px 16px; background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; color: #475569; font-size: 0.875rem; line-height: 1.5;"></div>
     <p id="ai-explanation-text" style="display: none; color: #334155; line-height: 1.6; font-size: 0.9375rem; margin-top: 8px;"></p>
     {% endif %}
 </div>
@@ -229,11 +236,20 @@
                     if (data && data.ai_explanation) {
                         clearInterval(pollTimer);
                         const loadingBox = document.getElementById('ai-loading-box');
+                        const noticeBox = document.getElementById('ai-notice-box');
                         const textBox = document.getElementById('ai-explanation-text');
                         if (loadingBox) loadingBox.style.display = 'none';
-                        if (textBox) {
-                            textBox.textContent = data.ai_explanation;
-                            textBox.style.display = 'block';
+
+                        if (data.ai_explanation.toLowerCase().indexOf('unconfigured') !== -1) {
+                            if (noticeBox) {
+                                noticeBox.innerHTML = '<strong>Notice:</strong> ' + data.ai_explanation;
+                                noticeBox.style.display = 'block';
+                            }
+                        } else {
+                            if (textBox) {
+                                textBox.textContent = data.ai_explanation;
+                                textBox.style.display = 'block';
+                            }
                         }
                     }
                 })

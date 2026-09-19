@@ -97,7 +97,7 @@ def test_fireworks_client_success(mock_post: MagicMock) -> None:
         {"role": "user", "content": "Route has 1 stop"},
     ]
     assert call_kwargs["json"]["temperature"] == 0.2
-    assert call_kwargs["json"]["max_tokens"] == 500
+    assert call_kwargs["json"]["max_tokens"] == 1200
 
 
 @patch("requests.post")

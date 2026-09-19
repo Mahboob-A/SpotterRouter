@@ -6,9 +6,10 @@ from explanations.adapters import FireworksLLMClient, LLMClient
 from trips.models import FuelStop, TripPlan
 
 DEFAULT_SYSTEM_PROMPT = (
-    "You are a professional logistics fuel-routing analyst. "
-    "Provide concise, clear, plain-language explanations of optimal fuel stop "
-    "choices for truck drivers."
+    "You are a senior freight logistics and dispatch optimization analyst. "
+    "Provide clear, professional, plain-language operational rationale explaining "
+    "fuel stop selections for commercial truck drivers. Analyze why chosen stations "
+    "minimize total trip refuel cost while respecting vehicle range limitations."
 )
 
 

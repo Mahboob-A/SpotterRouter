@@ -1,12 +1,16 @@
 import uuid
 from decimal import Decimal
+from typing import Any
 from unittest.mock import MagicMock
 
 from django.contrib.gis.geos import LineString, Point
 
 from explanations.exceptions import LLMServiceError
 from explanations.services import ExplanationService
-from explanations.tasks import generate_trip_explanation
+from explanations.tasks import (
+    UNCONFIGURED_EXPLANATION_NOTICE,
+    generate_trip_explanation,
+)
 from trips.caching import TripCacheManager
 from trips.models import TripPlan
 from trips.repositories import TripPlanRepository
@@ -31,7 +35,8 @@ def _make_sample_trip(has_explanation: bool = False) -> TripPlan:
     )
 
 
-def test_generate_trip_explanation_success() -> None:
+def test_generate_trip_explanation_success(settings: Any) -> None:
+    settings.FIREWORKS_API_KEY = "test-api-key"
     trip = _make_sample_trip(has_explanation=False)
     mock_repo = MagicMock(spec=TripPlanRepository)
     mock_repo.get_by_id.return_value = trip
@@ -55,6 +60,31 @@ def test_generate_trip_explanation_success() -> None:
     )
     mock_cache.set.assert_called_once_with(trip)
     assert trip.ai_explanation == "Optimal stops selected along I-55."
+
+
+def test_generate_trip_explanation_unconfigured_api_key(settings: Any) -> None:
+    settings.FIREWORKS_API_KEY = ""
+    trip = _make_sample_trip(has_explanation=False)
+    mock_repo = MagicMock(spec=TripPlanRepository)
+    mock_repo.get_by_id.return_value = trip
+
+    mock_service = MagicMock(spec=ExplanationService)
+    mock_cache = MagicMock(spec=TripCacheManager)
+
+    generate_trip_explanation(
+        trip_id=str(trip.id),
+        trip_repository=mock_repo,
+        explanation_service=mock_service,
+        cache_manager=mock_cache,
+    )
+
+    mock_repo.get_by_id.assert_called_once_with(trip.id)
+    mock_service.explain.assert_not_called()
+    mock_repo.update_explanation.assert_called_once_with(
+        trip.id, UNCONFIGURED_EXPLANATION_NOTICE
+    )
+    mock_cache.set.assert_called_once_with(trip)
+    assert trip.ai_explanation == UNCONFIGURED_EXPLANATION_NOTICE
 
 
 def test_generate_trip_explanation_invalid_uuid() -> None:
@@ -112,7 +142,8 @@ def test_generate_trip_explanation_already_exists() -> None:
     mock_repo.update_explanation.assert_not_called()
 
 
-def test_generate_trip_explanation_service_exception_isolated() -> None:
+def test_generate_trip_explanation_service_exception_isolated(settings: Any) -> None:
+    settings.FIREWORKS_API_KEY = "test-api-key"
     trip = _make_sample_trip(has_explanation=False)
     mock_repo = MagicMock(spec=TripPlanRepository)
     mock_repo.get_by_id.return_value = trip

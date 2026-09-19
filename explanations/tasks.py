@@ -1,15 +1,24 @@
 """Celery background tasks for generating AI trip explanations."""
 
 import logging
+import os
 import uuid
 
 from celery import shared_task
+from django.conf import settings
 
+from explanations.exceptions import LLMConfigurationError
 from explanations.services import ExplanationService
 from trips.caching import TripCacheManager
 from trips.repositories import TripPlanRepository
 
 logger = logging.getLogger(__name__)
+
+UNCONFIGURED_EXPLANATION_NOTICE = (
+    "AI Route Rationale is unconfigured: FIREWORKS_API_KEY is not set in this "
+    "environment. To enable real-time DeepSeek route rationale, supply a valid "
+    "Fireworks API key in your environment configuration."
+)
 
 
 @shared_task(name="explanations.tasks.generate_trip_explanation")  # type: ignore[untyped-decorator]
@@ -48,7 +57,33 @@ def generate_trip_explanation(
             )
             return
 
-        explanation = service.explain(trip_plan)
+        configured_key = getattr(
+            settings,
+            "FIREWORKS_API_KEY",
+            os.environ.get("FIREWORKS_API_KEY", ""),
+        )
+        if not configured_key or not str(configured_key).strip():
+            logger.info(
+                "FIREWORKS_API_KEY is not configured; "
+                "setting informative notice for trip %s",
+                trip_id,
+            )
+            repo.update_explanation(trip_plan.id, UNCONFIGURED_EXPLANATION_NOTICE)
+            trip_plan.ai_explanation = UNCONFIGURED_EXPLANATION_NOTICE
+            cache.set(trip_plan)
+            return
+
+        try:
+            explanation = service.explain(trip_plan)
+        except LLMConfigurationError:
+            logger.info(
+                "LLM configuration error for trip %s; setting informative notice",
+                trip_id,
+            )
+            repo.update_explanation(trip_plan.id, UNCONFIGURED_EXPLANATION_NOTICE)
+            trip_plan.ai_explanation = UNCONFIGURED_EXPLANATION_NOTICE
+            cache.set(trip_plan)
+            return
         if not explanation or not explanation.strip():
             logger.warning(
                 "ExplanationService returned empty explanation for trip %s",

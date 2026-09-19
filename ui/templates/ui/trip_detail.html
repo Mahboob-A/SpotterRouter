@@ -114,27 +114,27 @@
     </div>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px;">
         <div style="padding: 14px; background-color: var(--card-subtle); border: 1px solid var(--border-color); border-radius: 8px;">
-            <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Total Distance</div>
+            <div style="font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Total distance</div>
             <div class="tabular-nums" style="font-size: 1.35rem; font-weight: 700; color: var(--text-main);">{{ trip.total_distance_miles }} <span style="font-size: 0.875rem; font-weight: 400; color: var(--text-muted);">miles</span></div>
             <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Total corridor travel distance at 10 MPG vehicle rating.</div>
         </div>
         <div style="padding: 14px; background-color: var(--card-subtle); border: 1px solid var(--border-color); border-radius: 8px;">
-            <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Total Refuel Cost</div>
+            <div style="font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Total refuel cost</div>
             <div class="tabular-nums" style="font-size: 1.35rem; font-weight: 700; color: var(--success-text);">${{ trip.total_cost }}</div>
             <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Total out-of-pocket fuel purchases across {{ fuel_stops|length }} planned stop{{ fuel_stops|length|pluralize }}.</div>
         </div>
         <div style="padding: 14px; background-color: var(--card-subtle); border: 1px solid var(--border-color); border-radius: 8px;">
-            <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">1. Origin Departure</div>
+            <div style="font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Origin departure</div>
             <div class="tabular-nums" style="font-size: 1.35rem; font-weight: 700; color: var(--text-main);">{{ initial_fuel_gallons }} <span style="font-size: 0.875rem; font-weight: 400; color: var(--text-muted);">gal</span></div>
             <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Full tank pre-loaded at origin (covers first 500.00 miles; not billed on trip).</div>
         </div>
         <div style="padding: 14px; background-color: var(--card-subtle); border: 1px solid var(--border-color); border-radius: 8px;">
-            <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">2. En-Route Refueling</div>
+            <div style="font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">En-route refueling</div>
             <div class="tabular-nums" style="font-size: 1.35rem; font-weight: 700; color: var(--text-main);">{{ total_gallons_purchased }} <span style="font-size: 0.875rem; font-weight: 400; color: var(--text-muted);">gal</span></div>
             <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Fuel Purchased En Route across {{ fuel_stops|length }} stop{{ fuel_stops|length|pluralize }} along corridor to reach destination safely.</div>
         </div>
         <div style="padding: 14px; background-color: var(--card-subtle); border: 1px solid var(--border-color); border-radius: 8px;">
-            <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">3. Total Journey Consumed</div>
+            <div style="font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Total journey consumed</div>
             <div class="tabular-nums" style="font-size: 1.35rem; font-weight: 700; color: var(--primary);">{{ trip.total_gallons }} <span style="font-size: 0.875rem; font-weight: 400; color: var(--text-muted);">gal</span></div>
             <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Total fuel burned over {{ trip.total_distance_miles }} miles ({{ initial_fuel_gallons }} gal origin + {{ total_gallons_purchased }} gal refuel).</div>
         </div>

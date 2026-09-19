@@ -1,0 +1,253 @@
+{% extends "ui/base.html" %}
+
+{% block title %}Station Locations Directory - SpotterRouter{% endblock %}
+
+{% block extra_head %}
+<style>
+    .locations-header {
+        margin-bottom: 24px;
+    }
+    .filter-card {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 20px 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    .filter-form {
+        display: grid;
+        grid-template-columns: 2fr 1fr auto auto;
+        gap: 12px;
+        align-items: flex-end;
+    }
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .stat-card {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 16px 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    .stat-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        letter-spacing: 0.03em;
+    }
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin-top: 4px;
+    }
+    .pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-color);
+        font-size: 0.875rem;
+    }
+    .action-group {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="locations-header">
+    <h1 style="font-size: 1.625rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em; margin-bottom: 6px;">
+        Fuel Station Locations Directory
+    </h1>
+    <p style="color: var(--text-muted); font-size: 0.9375rem;">
+        Browse verified truck stop cities extracted directly from the OPIS dataset. Copy any location to your clipboard or send it directly to the route planner as origin or destination.
+    </p>
+</div>
+
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-label">Verified Cities</div>
+        <div class="stat-value">{{ total_cities }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Truck Stops in Dataset</div>
+        <div class="stat-value">6,738</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">US Contiguous States</div>
+        <div class="stat-value">48 States</div>
+    </div>
+</div>
+
+<div class="filter-card">
+    <form method="get" action="{% url 'locations' %}" class="filter-form">
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="q" class="form-label">Search City or State</label>
+            <input
+                type="text"
+                id="q"
+                name="q"
+                class="form-control"
+                placeholder="e.g. Dallas, Lafayette, or TX"
+                value="{{ q }}">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="state" class="form-label">State</label>
+            <select id="state" name="state" class="form-control">
+                <option value="">All 48 States</option>
+                {% for st in available_states %}
+                <option value="{{ st }}" {% if selected_state == st %}selected{% endif %}>{{ st }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="height: 42px;">
+            Filter
+        </button>
+
+        {% if q or selected_state %}
+        <a href="{% url 'locations' %}" class="btn btn-secondary" style="height: 42px;">
+            Reset
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 class="card-title" style="margin-bottom: 0;">
+            Locations List (Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }})
+        </h2>
+        <span style="font-size: 0.8125rem; color: var(--text-muted);">
+            Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ total_cities }} locations
+        </span>
+    </div>
+
+    {% if page_obj.object_list %}
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>City, State</th>
+                    <th>State</th>
+                    <th>Truck Stops</th>
+                    <th>Lowest Fuel Price</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loc in page_obj.object_list %}
+                <tr>
+                    <td>
+                        <strong style="font-size: 0.9375rem;">{{ loc.city }}, {{ loc.state }}</strong>
+                    </td>
+                    <td>
+                        <span class="badge badge-blue">{{ loc.state }}</span>
+                    </td>
+                    <td>
+                        {{ loc.station_count }} {% if loc.station_count == 1 %}station{% else %}stations{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-green">${{ loc.min_price }} / gal</span>
+                    </td>
+                    <td>
+                        <div class="action-group">
+                            <button
+                                type="button"
+                                class="btn btn-secondary btn-sm"
+                                onclick="copyLocation('{{ loc.city|escapejs }}, {{ loc.state|escapejs }}')"
+                                title="Copy to clipboard">
+                                Copy
+                            </button>
+                            <a
+                                href="{% url 'home' %}?start={{ loc.city|urlencode }},%20{{ loc.state }}"
+                                class="btn btn-secondary btn-sm"
+                                title="Set as trip origin">
+                                Set as Origin
+                            </a>
+                            <a
+                                href="{% url 'home' %}?end={{ loc.city|urlencode }},%20{{ loc.state }}"
+                                class="btn btn-secondary btn-sm"
+                                title="Set as trip destination">
+                                Set as Destination
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="pagination">
+        <div>
+            {% if page_obj.has_previous %}
+            <a href="?page=1{% if q %}&q={{ q|urlencode }}{% endif %}{% if selected_state %}&state={{ selected_state }}{% endif %}" class="btn btn-secondary btn-sm">&laquo; First</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if selected_state %}&state={{ selected_state }}{% endif %}" class="btn btn-secondary btn-sm">&lsaquo; Prev</a>
+            {% endif %}
+        </div>
+
+        <span style="color: var(--text-muted); font-size: 0.8125rem;">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+
+        <div>
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if selected_state %}&state={{ selected_state }}{% endif %}" class="btn btn-secondary btn-sm">Next &rsaquo;</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if selected_state %}&state={{ selected_state }}{% endif %}" class="btn btn-secondary btn-sm">Last &raquo;</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <p style="color: var(--text-muted); font-size: 0.875rem; padding: 24px 0; text-align: center;">
+        No locations found matching your filter criteria. <a href="{% url 'locations' %}">Reset filters</a>
+    </p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function copyLocation(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(function() {
+                showToast('Copied "' + text + '" to clipboard');
+            }).catch(function() {
+                fallbackCopy(text);
+            });
+        } else {
+            fallbackCopy(text);
+        }
+    }
+
+    function fallbackCopy(text) {
+        var textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showToast('Copied "' + text + '" to clipboard');
+        } catch (err) {
+            showToast('Unable to copy location');
+        }
+        document.body.removeChild(textArea);
+    }
+</script>
+{% endblock %}

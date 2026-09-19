@@ -40,12 +40,15 @@ class TripPlanRepository(BaseRepository[TripPlan]):
         )
         return updated > 0
 
-    def list_recent(self, limit: int = 20) -> list[TripPlan]:
+    def list_recent(self, limit: int = 20, offset: int = 0) -> list[TripPlan]:
         return list(
             self.model.objects.all().prefetch_related("fuel_stops__station")[
-                :limit
+                offset : offset + limit
             ]
         )
+
+    def count_total(self) -> int:
+        return self.model.objects.count()
 
 
 class FuelStopRepository(BaseRepository[FuelStop]):

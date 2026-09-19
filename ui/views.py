@@ -2,11 +2,15 @@ import json
 import uuid
 from typing import Any
 
-from django.http import Http404, HttpRequest, HttpResponse
+from django.core.paginator import Paginator
+from django.db.models import Count, Min, Q
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.views import View
 
+from core.constants import CONTIGUOUS_48_STATES
 from core.exceptions import FuelRouterError
+from stations.models import Station
 from trips.repositories import TripPlanRepository
 from trips.services import TripPlanningService
 from ui.constants import PRESET_TRIP_PAIRS
@@ -26,19 +30,27 @@ class HomeView(View):
         self._repository = repository or TripPlanRepository()
 
     def get(self, request: HttpRequest) -> HttpResponse:
-        recent_trips = self._repository.list_recent(limit=20)
+        start = request.GET.get("start", "").strip()
+        end = request.GET.get("end", "").strip()
+        limit = 10
+        recent_trips = self._repository.list_recent(limit=limit, offset=0)
+        total_trips = self._repository.count_total()
         context = {
             "recent_trips": recent_trips,
             "presets": PRESET_TRIP_PAIRS,
-            "start": "",
-            "end": "",
+            "start": start,
+            "end": end,
+            "has_more": total_trips > limit,
+            "total_trips": total_trips,
         }
         return render(request, "ui/home.html", context)
 
     def post(self, request: HttpRequest) -> HttpResponse:
         start = request.POST.get("start", "").strip()
         end = request.POST.get("end", "").strip()
-        recent_trips = self._repository.list_recent(limit=20)
+        limit = 10
+        recent_trips = self._repository.list_recent(limit=limit, offset=0)
+        total_trips = self._repository.count_total()
 
         if not start or not end:
             context = {
@@ -46,6 +58,8 @@ class HomeView(View):
                 "presets": PRESET_TRIP_PAIRS,
                 "start": start,
                 "end": end,
+                "has_more": total_trips > limit,
+                "total_trips": total_trips,
                 "error": "Both start and destination locations are required.",
             }
             return render(request, "ui/home.html", context, status=400)
@@ -59,9 +73,106 @@ class HomeView(View):
                 "presets": PRESET_TRIP_PAIRS,
                 "start": start,
                 "end": end,
+                "has_more": total_trips > limit,
+                "total_trips": total_trips,
                 "error": str(exc),
             }
             return render(request, "ui/home.html", context, status=400)
+
+
+class RecentTripsApiView(View):
+    """JSON API endpoint for loading paginated recent trips."""
+
+    def __init__(
+        self,
+        repository: TripPlanRepository | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
+        self._repository = repository or TripPlanRepository()
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        try:
+            offset = max(0, int(request.GET.get("offset", 0)))
+        except (ValueError, TypeError):
+            offset = 0
+
+        try:
+            limit = min(50, max(1, int(request.GET.get("limit", 10))))
+        except (ValueError, TypeError):
+            limit = 10
+
+        trips = self._repository.list_recent(limit=limit, offset=offset)
+        total = self._repository.count_total()
+        loaded_count = offset + len(trips)
+        has_more = loaded_count < total
+
+        trips_data: list[dict[str, Any]] = []
+        for trip in trips:
+            trips_data.append(
+                {
+                    "id": str(trip.id),
+                    "start_input": trip.start_input,
+                    "end_input": trip.end_input,
+                    "total_distance_miles": str(trip.total_distance_miles),
+                    "total_cost": str(trip.total_cost),
+                    "created_at": (
+                        trip.created_at.strftime("%Y-%m-%d %H:%M")
+                        if trip.created_at
+                        else ""
+                    ),
+                    "detail_url": f"/trips/{trip.id}/",
+                }
+            )
+
+        payload = {
+            "trips": trips_data,
+            "has_more": has_more,
+            "next_offset": offset + len(trips),
+            "loaded_count": loaded_count,
+            "total": total,
+        }
+        return JsonResponse(payload)
+
+
+class LocationsView(View):
+    """Presentation view for browsing and filtering fuel station locations."""
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        q = request.GET.get("q", "").strip()
+        state_filter = request.GET.get("state", "").strip().upper()
+
+        qs = Station.objects.filter(state__in=CONTIGUOUS_48_STATES)
+
+        if state_filter and state_filter in CONTIGUOUS_48_STATES:
+            qs = qs.filter(state=state_filter)
+
+        if q:
+            qs = qs.filter(Q(city__icontains=q) | Q(state__iexact=q))
+
+        aggregated_locations = (
+            qs.values("city", "state")
+            .annotate(
+                station_count=Count("id"),
+                min_price=Min("retail_price"),
+            )
+            .order_by("state", "city")
+        )
+
+        paginator = Paginator(aggregated_locations, 50)
+        page_number = request.GET.get("page", 1)
+        page_obj = paginator.get_page(page_number)
+
+        available_states = sorted(list(CONTIGUOUS_48_STATES))
+
+        context = {
+            "page_obj": page_obj,
+            "q": q,
+            "selected_state": state_filter,
+            "available_states": available_states,
+            "total_cities": paginator.count,
+        }
+        return render(request, "ui/locations.html", context)
 
 
 class TripDetailView(View):

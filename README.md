@@ -185,7 +185,7 @@ It contains pre-built requests for:
 ## 7. Testing & Quality Assurance
 
 ```bash
-# Run 146 unit and integration tests (100% offline, zero network dependencies)
+# Run 152 unit and integration tests (100% offline, zero network dependencies)
 make test
 
 # Run tests for a specific app or test file
@@ -195,7 +195,7 @@ make test TEST_ARGS=trips/tests/
 make lint
 ```
 
-- **Test Suite**: 146 automated tests running in ~2.4 seconds.
+- **Test Suite**: 152 automated tests running in ~2.4 seconds.
 - **Static Typing**: Strict Mypy type validation across 88 Python source files with 0 errors.
 - **Linting**: Ruff checking with 0 warnings or errors.
 

@@ -1,10 +1,71 @@
 {% extends "ui/base.html" %}
 
-{% block title %}Plan Trip - Spotter Fuel Router{% endblock %}
+{% block title %}Plan Route - SpotterRouter{% endblock %}
+
+{% block extra_head %}
+<style>
+    .hero-container {
+        position: relative;
+        background-color: #ffffff;
+        background-image: 
+            radial-gradient(ellipse at 50% 0%, rgba(37, 99, 235, 0.05) 0%, transparent 70%),
+            linear-gradient(to right, rgba(226, 232, 240, 0.6) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(226, 232, 240, 0.6) 1px, transparent 1px);
+        background-size: 100% 100%, 28px 28px, 28px 28px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 36px 32px;
+        margin-bottom: 28px;
+        box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+    }
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        background-color: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+    }
+    .hero-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--text-main);
+        letter-spacing: -0.02em;
+        margin-bottom: 6px;
+    }
+    .hero-subtitle {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin-bottom: 24px;
+        line-height: 1.5;
+    }
+    .fade-in-row {
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h2 class="card-title">Plan Fuel-Optimal Route</h2>
+<div class="hero-container">
+    <div class="hero-badge">
+        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #2563eb;"></span>
+        Contiguous US Fleet Route Engine
+    </div>
+    <h1 class="hero-title">Optimize Fuel Stops & Minimize Long-Haul Cost</h1>
+    <p class="hero-subtitle">
+        Enter your origin and destination across the 48 contiguous United States. Our lookahead algorithm plans your 500-mile range stops at the lowest retail fuel prices along the corridor.
+    </p>
 
     {% if error %}
     <div class="alert alert-error">
@@ -12,8 +73,8 @@
     </div>
     {% endif %}
 
-    <div style="margin-bottom: 20px;">
-        <label class="form-label">Quick Route Presets</label>
+    <div style="margin-bottom: 22px;">
+        <label class="form-label" style="font-size: 0.8125rem; text-transform: uppercase; color: var(--text-muted);">Quick Benchmark Presets</label>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             {% for preset in presets %}
             <button
@@ -28,8 +89,8 @@
 
     <form method="post" action="{% url 'home' %}">
         {% csrf_token %}
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-            <div class="form-group">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px;">
+            <div class="form-group" style="margin-bottom: 0;">
                 <label for="start" class="form-label">Origin (City, State or Address)</label>
                 <input
                     type="text"
@@ -40,7 +101,7 @@
                     value="{{ start }}"
                     required>
             </div>
-            <div class="form-group">
+            <div class="form-group" style="margin-bottom: 0;">
                 <label for="end" class="form-label">Destination (City, State or Address)</label>
                 <input
                     type="text"
@@ -53,14 +114,20 @@
             </div>
         </div>
 
-        <button type="submit" class="btn btn-primary" style="width: 100%;">
-            Calculate Fuel-Optimal Route
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.9375rem;">
+            Calculate Fuel-Optimal Route &rarr;
         </button>
     </form>
 </div>
 
 <div class="card">
-    <h2 class="card-title">Recent Computed Trips</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 class="card-title" style="margin-bottom: 0;">Recent Computed Trips</h2>
+        <span style="font-size: 0.8125rem; color: var(--text-muted);">
+            Total Saved Plans: <strong id="total-trips-stat">{{ total_trips }}</strong>
+        </span>
+    </div>
+
     {% if recent_trips %}
     <div style="overflow-x: auto;">
         <table>
@@ -74,13 +141,13 @@
                     <th>Action</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="recent-trips-tbody">
                 {% for trip in recent_trips %}
                 <tr>
                     <td><strong>{{ trip.start_input }}</strong></td>
                     <td><strong>{{ trip.end_input }}</strong></td>
                     <td>{{ trip.total_distance_miles }} mi</td>
-                    <td>${{ trip.total_cost }}</td>
+                    <td><span class="badge badge-green">${{ trip.total_cost }}</span></td>
                     <td>{{ trip.created_at|date:"Y-m-d H:i" }}</td>
                     <td>
                         <a href="{% url 'trip-detail' trip.id %}" class="btn btn-secondary btn-sm">
@@ -92,6 +159,15 @@
             </tbody>
         </table>
     </div>
+
+    {% if has_more %}
+    <div id="load-more-wrapper" style="text-align: center; margin-top: 20px;">
+        <button id="load-more-btn" class="btn btn-secondary" onclick="loadMoreRecentTrips()">
+            Load More Trips (<span id="loaded-count">{{ recent_trips|length }}</span> of {{ total_trips }})
+        </button>
+    </div>
+    {% endif %}
+
     {% else %}
     <p style="color: var(--text-muted); font-size: 0.875rem;">
         No past trips found. Plan your first route above.
@@ -105,6 +181,65 @@
     function setPreset(start, end) {
         document.getElementById('start').value = start;
         document.getElementById('end').value = end;
+    }
+
+    var currentOffset = {{ recent_trips|length }};
+    var totalTrips = {{ total_trips }};
+
+    function loadMoreRecentTrips() {
+        var btn = document.getElementById('load-more-btn');
+        if (!btn) return;
+        btn.disabled = true;
+        btn.innerText = 'Loading...';
+
+        fetch('/recent-trips/?offset=' + currentOffset + '&limit=10')
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                var tbody = document.getElementById('recent-trips-tbody');
+                if (!tbody) return;
+
+                data.trips.forEach(function(trip) {
+                    var tr = document.createElement('tr');
+                    tr.className = 'fade-in-row';
+                    tr.innerHTML = 
+                        '<td><strong>' + escapeHtml(trip.start_input) + '</strong></td>' +
+                        '<td><strong>' + escapeHtml(trip.end_input) + '</strong></td>' +
+                        '<td>' + escapeHtml(trip.total_distance_miles) + ' mi</td>' +
+                        '<td><span class="badge badge-green">$' + escapeHtml(trip.total_cost) + '</span></td>' +
+                        '<td>' + escapeHtml(trip.created_at) + '</td>' +
+                        '<td><a href="' + trip.detail_url + '" class="btn btn-secondary btn-sm">View Map</a></td>';
+                    tbody.appendChild(tr);
+                });
+
+                currentOffset = data.next_offset;
+                var loadedCountElem = document.getElementById('loaded-count');
+                if (loadedCountElem) {
+                    loadedCountElem.innerText = currentOffset;
+                }
+
+                if (!data.has_more) {
+                    var wrapper = document.getElementById('load-more-wrapper');
+                    if (wrapper) {
+                        wrapper.style.display = 'none';
+                    }
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Load More Trips (<span id="loaded-count">' + currentOffset + '</span> of ' + data.total + ')';
+                }
+            })
+            .catch(function(err) {
+                console.error('Failed to load more trips:', err);
+                btn.disabled = false;
+                btn.innerText = 'Retry Loading Trips';
+            });
+    }
+
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.innerText = text || '';
+        return div.innerHTML;
     }
 </script>
 {% endblock %}

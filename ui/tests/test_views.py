@@ -144,3 +144,139 @@ def test_trip_detail_view_not_found(client: Client, db: None) -> None:
     response = client.get(url)
 
     assert response.status_code == 404
+
+
+def test_base_navigation_and_branding(
+    client: Client, sample_trip_plan: TripPlan
+) -> None:
+    url = reverse("home")
+    response = client.get(url)
+
+    content = response.content.decode()
+    assert "SpotterRouter" in content
+    assert "spotterrouter.mahboob.engineer" in content
+    assert ">Plan Trip<" not in content
+    assert ">REST API<" not in content
+    assert ">Health<" not in content
+    assert "Locations" in content
+    assert reverse("locations") in content
+
+
+def test_home_view_prefills_from_get_params(client: Client, db: None) -> None:
+    url = reverse("home")
+    response = client.get(url, {"start": "Austin, TX", "end": "Houston, TX"})
+
+    assert response.status_code == 200
+    assert response.context["start"] == "Austin, TX"
+    assert response.context["end"] == "Houston, TX"
+    content = response.content.decode()
+    assert 'value="Austin, TX"' in content
+    assert 'value="Houston, TX"' in content
+
+
+def test_home_view_pagination_limit_10(client: Client, db: None) -> None:
+    for i in range(15):
+        TripPlan.objects.create(
+            start_input=f"City{i}, IL",
+            end_input="Dallas, TX",
+            start_point=Point(-87.6, 41.8, srid=4326),
+            end_point=Point(-96.8, 32.7, srid=4326),
+            route_geometry=LineString([(-87.6, 41.8), (-96.8, 32.7)], srid=4326),
+            total_distance_miles=Decimal("500.00"),
+            total_gallons=Decimal("50.000"),
+            total_cost=Decimal("150.00"),
+            cache_key=f"pagination_test_key_{i}",
+        )
+
+    url = reverse("home")
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert len(response.context["recent_trips"]) == 10
+    assert response.context["has_more"] is True
+    assert response.context["total_trips"] == 15
+    assert "Load More Trips" in response.content.decode()
+
+
+def test_recent_trips_api_view(client: Client, db: None) -> None:
+    for i in range(15):
+        TripPlan.objects.create(
+            start_input=f"City{i}, IL",
+            end_input="Dallas, TX",
+            start_point=Point(-87.6, 41.8, srid=4326),
+            end_point=Point(-96.8, 32.7, srid=4326),
+            route_geometry=LineString([(-87.6, 41.8), (-96.8, 32.7)], srid=4326),
+            total_distance_miles=Decimal("500.00"),
+            total_gallons=Decimal("50.000"),
+            total_cost=Decimal("150.00"),
+            cache_key=f"api_test_key_{i}",
+        )
+
+    url = reverse("recent-trips")
+    response = client.get(url, {"offset": 10, "limit": 10})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["trips"]) == 5
+    assert data["has_more"] is False
+    assert data["loaded_count"] == 15
+    assert data["total"] == 15
+
+
+def test_locations_view_renders_successfully(client: Client, db: None) -> None:
+    Station.objects.create(
+        opis_id="LOC_TEST_01",
+        name="LOVES TRAVEL STOP #1",
+        city="Indianapolis",
+        state="IN",
+        retail_price=Decimal("3.199"),
+        location=Point(-86.15, 39.76, srid=4326),
+    )
+    url = reverse("locations")
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert "page_obj" in response.context
+    assert response.context["total_cities"] >= 1
+    content = response.content.decode()
+    assert "Indianapolis" in content
+    assert "IN" in content
+    assert "Locations Directory" in content
+    assert "Copy" in content
+    assert "Set as Origin" in content
+    assert "Set as Destination" in content
+
+
+def test_locations_view_filter_and_search(client: Client, db: None) -> None:
+    Station.objects.create(
+        opis_id="LOC_TEST_02",
+        name="PILOT #2",
+        city="Columbus",
+        state="OH",
+        retail_price=Decimal("3.249"),
+        location=Point(-82.99, 39.96, srid=4326),
+    )
+    Station.objects.create(
+        opis_id="LOC_TEST_03",
+        name="FLYING J #3",
+        city="Dallas",
+        state="TX",
+        retail_price=Decimal("2.999"),
+        location=Point(-96.79, 32.77, srid=4326),
+    )
+
+    url = reverse("locations")
+
+    # Search by city
+    resp_search = client.get(url, {"q": "Columbus"})
+    assert resp_search.status_code == 200
+    content_search = resp_search.content.decode()
+    assert "Columbus, OH" in content_search
+    assert "Dallas, TX" not in content_search
+
+    # Filter by state
+    resp_state = client.get(url, {"state": "TX"})
+    assert resp_state.status_code == 200
+    content_state = resp_state.content.decode()
+    assert "Dallas, TX" in content_state
+    assert "Columbus, OH" not in content_state

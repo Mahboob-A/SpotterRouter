@@ -106,7 +106,6 @@ class Command(BaseCommand):
                     unresolved += 1
                     continue
 
-
             station.location = point
             stations_to_update.append(station)
             geocoded += 1

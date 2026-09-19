@@ -10,8 +10,12 @@ class PricingDataset(models.Model):
     filename = models.CharField(max_length=255)
     file_hash = models.CharField(max_length=64, db_index=True)
     station_count = models.PositiveIntegerField(default=0)
-    min_price = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True)
-    max_price = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True)
+    min_price = models.DecimalField(
+        max_digits=6, decimal_places=3, null=True, blank=True
+    )
+    max_price = models.DecimalField(
+        max_digits=6, decimal_places=3, null=True, blank=True
+    )
     is_active = models.BooleanField(default=True, db_index=True)
     description = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -73,4 +77,3 @@ class StationPrice(models.Model):
         indexes = [
             models.Index(fields=["dataset", "station"]),
         ]
-

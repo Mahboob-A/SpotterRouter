@@ -58,6 +58,4 @@ class Command(BaseCommand):
                 batch_size=1000,
             )
 
-        self.stdout.write(
-            self.style.SUCCESS(f"Loaded {len(created)} unique stations.")
-        )
+        self.stdout.write(self.style.SUCCESS(f"Loaded {len(created)} unique stations."))

@@ -9,7 +9,7 @@ from django.db.models import QuerySet
 
 from core.constants import CORRIDOR_BUFFER_MILES
 from core.repositories import BaseRepository
-from stations.models import Station
+from stations.models import PricingDataset, Station
 
 
 @dataclass(frozen=True)
@@ -83,9 +83,7 @@ class StationRepository(BaseRepository[Station]):
             if station.location is None:
                 continue
             fraction_val = float(getattr(station, "fraction", 0.0) or 0.0)
-            distance_miles = Decimal(
-                str(round(fraction_val * total_miles_float, 2))
-            )
+            distance_miles = Decimal(str(round(fraction_val * total_miles_float, 2)))
             candidates.append(
                 StationCandidate(
                     station_id=station.id,
@@ -99,3 +97,26 @@ class StationRepository(BaseRepository[Station]):
                 )
             )
         return candidates
+
+
+class PricingDatasetRepository(BaseRepository[PricingDataset]):
+    model = PricingDataset
+
+    def get_active(self) -> PricingDataset | None:
+        return self.model.objects.filter(is_active=True).first()
+
+    def get_by_version_code(self, version_code: str) -> PricingDataset | None:
+        return self.model.objects.filter(version_code=version_code).first()
+
+    def get_by_file_hash(self, file_hash: str) -> PricingDataset | None:
+        return self.model.objects.filter(file_hash=file_hash).first()
+
+    def list_all(self) -> QuerySet[PricingDataset]:
+        return self.model.objects.all().order_by("-created_at")
+
+    def set_active(self, dataset_id: str) -> PricingDataset:
+        self.model.objects.filter(is_active=True).update(is_active=False)
+        dataset = self.model.objects.get(id=dataset_id)
+        dataset.is_active = True
+        dataset.save(update_fields=["is_active"])
+        return dataset

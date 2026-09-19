@@ -118,7 +118,6 @@ class TestGeocodeStationsCommand:
         ):
             call_command("geocode_stations", stdout=out)
 
-
         valid_st = Station.objects.get(opis_id="301")
         invalid_st = Station.objects.get(opis_id="302")
         assert valid_st.location is not None

@@ -47,3 +47,41 @@ class TestStationRepository:
         stations = list(StationRepository().needing_geocoding())
 
         assert stations == [missing]
+
+
+@pytest.mark.django_db
+class TestPricingDatasetRepository:
+    def test_pricing_dataset_repository_queries(self) -> None:
+        from stations.models import PricingDataset
+        from stations.repositories import PricingDatasetRepository
+
+        repo = PricingDatasetRepository()
+        PricingDataset.objects.all().delete()
+
+        d1 = PricingDataset.objects.create(
+            version_code="DATASET-A",
+            filename="dataset_a.csv",
+            file_hash="hash_a",
+            station_count=10,
+            is_active=False,
+        )
+        d2 = PricingDataset.objects.create(
+            version_code="DATASET-B",
+            filename="dataset_b.csv",
+            file_hash="hash_b",
+            station_count=20,
+            is_active=True,
+        )
+
+        assert repo.get_active() == d2
+        assert repo.get_by_version_code("DATASET-A") == d1
+        assert repo.get_by_file_hash("hash_b") == d2
+        assert repo.get_by_version_code("UNKNOWN") is None
+        assert list(repo.list_all()) == [d2, d1]
+
+        # Test set_active
+        activated = repo.set_active(str(d1.id))
+        assert activated.id == d1.id
+        assert activated.is_active is True
+        d2.refresh_from_db()
+        assert d2.is_active is False

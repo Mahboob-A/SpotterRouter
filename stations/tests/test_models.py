@@ -31,9 +31,9 @@ class StationSchemaTests(SimpleTestCase):
 
         fields = PricingDataset._meta
         self.assertTrue(fields.get_field("version_code").unique)
-        self.assertTrue(fields.get_field("version_code").db_index)
-        self.assertTrue(fields.get_field("file_hash").db_index)
-        self.assertTrue(fields.get_field("is_active").db_index)
+        self.assertTrue(fields.get_field("version_code").db_index)  # type: ignore[attr-defined]
+        self.assertTrue(fields.get_field("file_hash").db_index)  # type: ignore[attr-defined]
+        self.assertTrue(fields.get_field("is_active").db_index)  # type: ignore[attr-defined]
         self.assertEqual(fields.get_field("min_price").decimal_places, 3)
         self.assertEqual(fields.get_field("max_price").decimal_places, 3)
 
@@ -44,4 +44,3 @@ class StationSchemaTests(SimpleTestCase):
         self.assertEqual(fields.get_field("retail_price").max_digits, 6)
         self.assertEqual(fields.get_field("retail_price").decimal_places, 3)
         self.assertTrue(any("dataset" in idx.fields for idx in fields.indexes))
-

@@ -25,14 +25,14 @@ The application provides server-rendered interfaces alongside REST APIs. All lin
 
 | Route | Name | Purpose & Why It Exists |
 |---|---|---|
-| `[/](/)` | **Trip Planner & Dashboard** | Main interface to plan routes, preview benchmark pairs, view fuel stops on an interactive Leaflet map, and inspect recent trip history. |
-| `[/locations/](/locations/)` | **Location Explorer** | Search and browse supported contiguous US cities, states, and coordinates to verify geocoding coverage before dispatching. |
-| `[/datasets/](/datasets/)` | **Dataset Manager** | Inspect active OPIS fuel price data, upload new CSVs, verify SHA-256 hashes, and switch active datasets in real time without downtime. |
-| `[/docs/](/docs/)` | **Engineering Documentation** | Built-in VS Code-style interactive reader containing 24 comprehensive articles covering architecture, algorithms, tradeoffs, infra, and deployments. |
-| `[/api-docs/](/api-docs/)` | **Interactive Swagger UI** | Test and explore the REST API directly in the browser with live parameter execution and schema validation. |
-| `[/openapi.yaml](/openapi.yaml)` | **OpenAPI Specification** | Raw OpenAPI 3.0 YAML specification file ready for import into Postman, Insomnia, or client SDK generators. |
-| `[/api/health/](/api/health/)` | **System Health Check** | Machine-readable health check verifying connectivity to PostgreSQL/PostGIS, Redis, and OSRM routing services. |
-| `[/trips/<id>/pdf/](/trips/<id>/pdf/)` | **Driver Dispatch PDF** | In-memory commercial driver dispatch sheet with turn-by-turn refueling instructions and safety checklists. |
+| `/` | [Trip Planner & Dashboard](/) | Main interface to plan routes, preview benchmark pairs, view fuel stops on an interactive Leaflet map, and inspect recent trip history. |
+| `/locations/` | [Location Explorer](/locations/) | Search and browse supported contiguous US cities, states, and coordinates to verify geocoding coverage before dispatching. |
+| `/datasets/` | [Dataset Manager](/datasets/) | Inspect active OPIS fuel price data, upload new CSVs, verify SHA-256 hashes, and switch active datasets in real time without downtime. |
+| `/docs/` | [Engineering Documentation](/docs/) | Built-in VS Code-style interactive reader containing 24 comprehensive articles covering architecture, algorithms, tradeoffs, infra, and deployments. |
+| `/api-docs/` | [Interactive Swagger UI](/api-docs/) | Test and explore the REST API directly in the browser with live parameter execution and schema validation. |
+| `/openapi.yaml` | [OpenAPI Specification](/openapi.yaml) | Raw OpenAPI 3.0 YAML specification file ready for import into Postman, Insomnia, or client SDK generators. |
+| `/api/health/` | [System Health Check](/api/health/) | Machine-readable health check verifying connectivity to PostgreSQL/PostGIS, Redis, and OSRM routing services. |
+| `/trips/<id>/pdf/` | Driver Dispatch PDF | In-memory commercial driver dispatch sheet with turn-by-turn refueling instructions and safety checklists. |
 
 ---
 
@@ -116,6 +116,90 @@ Content-Type: application/json
   "start": "Chicago, IL",
   "end": "Dallas, TX",
   "force_refresh": false
+}
+```
+
+Real sample response (`HTTP/1.1 200 OK`):
+```json
+{
+  "id": "02b1cb46-cbbd-4709-8a7c-8dfe4268566c",
+  "start_input": "Chicago, IL",
+  "end_input": "Dallas, TX",
+  "dataset_version": "OPIS-2026-09-19",
+  "total_distance_miles": 968.45,
+  "total_gallons": 96.845,
+  "total_gallons_purchased": 46.845,
+  "initial_fuel_gallons": 50.0,
+  "total_cost": 135.09,
+  "fuel_stops": [
+    {
+      "stop_order": 1,
+      "station_name": "HUCKS FOOD & FUEL #379",
+      "city": "Marion",
+      "state": "IL",
+      "distance_from_start_miles": 303.73,
+      "gallons_purchased": 28.334,
+      "price_per_gallon": 2.929,
+      "cost": 82.99
+    },
+    {
+      "stop_order": 2,
+      "station_name": "RACETRAC #2641",
+      "city": "Texarkana",
+      "state": "TX",
+      "distance_from_start_miles": 783.34,
+      "gallons_purchased": 1.259,
+      "price_per_gallon": 2.857,
+      "cost": 3.6
+    },
+    {
+      "stop_order": 3,
+      "station_name": "EXTRA MILE TRUCK STOP",
+      "city": "Hooks",
+      "state": "TX",
+      "distance_from_start_miles": 795.93,
+      "gallons_purchased": 12.994,
+      "price_per_gallon": 2.817,
+      "cost": 36.6
+    },
+    {
+      "stop_order": 4,
+      "station_name": "CADOO MILLS",
+      "city": "Caddo Mills",
+      "state": "TX",
+      "distance_from_start_miles": 925.87,
+      "gallons_purchased": 3.558,
+      "price_per_gallon": 2.801,
+      "cost": 9.97
+    },
+    {
+      "stop_order": 5,
+      "station_name": "One9 #1248",
+      "city": "Wilmer",
+      "state": "TX",
+      "distance_from_start_miles": 961.45,
+      "gallons_purchased": 0.7,
+      "price_per_gallon": 2.756,
+      "cost": 1.93
+    }
+  ],
+  "route_geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [-87.620327, 41.890026],
+      [-87.620328, 41.890021],
+      [-87.620371, 41.889729],
+      [-87.620380, 41.889667],
+      [-87.620395, 41.889573],
+      [-87.620409, 41.889476],
+      [-87.620421, 41.889396],
+      [-87.620436, 41.889301]
+      // ... remaining 9,290 coordinates redacted
+    ]
+  },
+  "ai_explanation": null,
+  "created_at": "2026-09-19T16:55:26.761333Z",
+  "last_requested_at": "2026-09-19T16:55:26.759941Z"
 }
 ```
 

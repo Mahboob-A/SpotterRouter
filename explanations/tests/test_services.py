@@ -122,3 +122,50 @@ def test_explain_invokes_llm_client() -> None:
     call_args = mock_client.generate_explanation.call_args
     assert "Chicago, IL" in call_args.args[0]
     assert call_args.kwargs["system_prompt"] is not None
+
+
+def test_build_fallback_explanation_zero_stops() -> None:
+    plan = _create_trip_plan(distance_miles="320.00")
+    plan._prefetched_objects_cache = {  # type: ignore[attr-defined]
+        "fuel_stops": [],
+    }
+    service = ExplanationService()
+    fallback = service.build_fallback_explanation(plan)
+
+    assert "320.00 miles" in fallback
+    assert "within the commercial vehicle's 500-mile operating range" in fallback
+    assert "No en-route refueling stops are required" in fallback
+
+
+def test_build_fallback_explanation_with_stops() -> None:
+    plan = _create_trip_plan(
+        distance_miles="900.00", total_gallons="90.000", total_cost="260.00"
+    )
+    station = Station(
+        id=1,
+        opis_id="ST-101",
+        name="Speedway #400",
+        city="Indianapolis",
+        state="IN",
+        retail_price=Decimal("2.890"),
+    )
+    stop = FuelStop(
+        trip_plan=plan,
+        station=station,
+        stop_order=1,
+        distance_from_start_miles=Decimal("400.00"),
+        gallons_purchased=Decimal("40.000"),
+        price_per_gallon=Decimal("2.890"),
+        cost=Decimal("115.60"),
+    )
+    plan._prefetched_objects_cache = {  # type: ignore[attr-defined]
+        "fuel_stops": [stop],
+    }
+    service = ExplanationService()
+    fallback = service.build_fallback_explanation(plan)
+
+    assert "1 fuel stop(s) over 900.00 miles" in fallback
+    assert "Speedway #400 in Indianapolis, IN" in fallback
+    assert "$2.890/gal" in fallback
+    assert "$260.00" in fallback
+

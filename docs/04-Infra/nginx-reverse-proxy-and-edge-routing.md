@@ -14,8 +14,19 @@ The request flow in production is arranged in layers:
 2. An edge ingress (such as Traefik on a cloud host or direct firewall port forwarding) forwards the incoming connection to Nginx on port 80.
 3. Nginx inspects the request path:
    - If the request path begins with `/static/`, Nginx reads the static asset directly from the local disk volume and returns it immediately.
-   - For all other paths (UI pages, API endpoints, health checks), Nginx proxies the connection over the internal Docker network to Gunicorn running in the `backend` container on port 8000.
+   - For all other paths (UI pages, API endpoints, health checks), Nginx proxies the connection over the internal Docker network to Gunicorn running in the `backend` container on port 8000 using Docker embedded DNS resolution (`127.0.0.11`).
 4. Gunicorn processes the request and sends the response back to Nginx, which streams it to the user.
+
+---
+
+## Dynamic DNS Resolution in Docker
+
+In Docker Compose deployments, containers are frequently rebuilt or recreated with new internal IP addresses. Standard Nginx upstream blocks resolve hostnames only once at startup, which causes Nginx to retain stale IPs and return HTTP 502 Bad Gateway errors after redeployments.
+
+To prevent stale IP routing:
+- Nginx defines `resolver 127.0.0.11 valid=5s ipv6=off;`, querying Docker's internal DNS server.
+- Dynamic proxying uses variable assignment (`set $backend_target http://backend:8000; proxy_pass $backend_target;`).
+- When the backend container is recreated during zero-downtime rolling releases, Nginx re-resolves the new container IP within 5 seconds without requiring an Nginx container restart.
 
 ---
 

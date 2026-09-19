@@ -1,8 +1,18 @@
+# Environment variables and secrets
 .env
+.env.*
+!.env.example
+
+# Collected static assets
+staticfiles/
+
+# Python virtual environment and bytecode
 .venv/
 __pycache__/
 *.py[cod]
 *.sqlite3
+
+# Test coverage and tool caches
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
@@ -10,6 +20,7 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+
+# Coding assistants
 .claude/
 .codex/
-

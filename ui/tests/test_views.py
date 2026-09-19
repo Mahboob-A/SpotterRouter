@@ -417,6 +417,54 @@ def test_datasets_view_get_renders_successfully(client: Client, db: None) -> Non
     assert "TEST-UI-DS-1" in content
 
 
+def test_datasets_view_get_active_dataset_listed_first(
+    client: Client, monkeypatch: pytest.MonkeyPatch, db: None
+) -> None:
+    from datetime import datetime
+
+    from stations.services import DatasetIngestionService, DiskDatasetInfo
+
+    file_pending = DiskDatasetInfo(
+        filename="b_pending.csv",
+        filepath="/tmp/b_pending.csv",
+        size_bytes=1000,
+        size_display="1.0 KB",
+        modified_at=datetime(2026, 9, 19, 12, 0),
+        file_hash="hash_b",
+        is_ingested=False,
+        is_active=False,
+    )
+    file_active = DiskDatasetInfo(
+        filename="a_active.csv",
+        filepath="/tmp/a_active.csv",
+        size_bytes=1000,
+        size_display="1.0 KB",
+        modified_at=datetime(2026, 9, 19, 10, 0),
+        file_hash="hash_a",
+        is_ingested=True,
+        is_active=True,
+    )
+
+    # Ingestion service scan returns active first per sorting
+    monkeypatch.setattr(
+        DatasetIngestionService,
+        "scan_dataset_directory",
+        lambda self, directory_path=None: [file_active, file_pending],
+    )
+
+    url = reverse("datasets")
+    response = client.get(url)
+
+    assert response.status_code == 200
+    disk_files = response.context["disk_files"]
+    assert len(disk_files) == 2
+    assert disk_files[0].filename == "a_active.csv"
+    assert disk_files[0].is_active is True
+    assert disk_files[1].filename == "b_pending.csv"
+    assert disk_files[1].is_active is False
+
+
+
 def test_datasets_view_post_upload_valid_csv(client: Client, db: None) -> None:
     from pathlib import Path
 

@@ -70,6 +70,45 @@ class TestDatasetIngestionService:
         assert scanned_after[0].version_code == "TEST-SCAN-1"
         assert scanned_after[0].station_count == 3
 
+    def test_scan_dataset_directory_places_active_dataset_first(
+        self, tmp_path: Path, settings: Any
+    ) -> None:
+        import os
+        import time
+
+        settings.DATASET_DIR = tmp_path
+        service = DatasetIngestionService()
+
+        # Place two CSV files on disk with distinct content
+        active_csv = tmp_path / "older_active.csv"
+        active_csv.write_text(SAMPLE_CSV)
+
+        pending_csv = tmp_path / "newer_pending.csv"
+        pending_csv.write_text(SAMPLE_CSV_UPDATED)
+
+
+        # Make newer_pending have a newer mtime
+        now = time.time()
+        os.utime(active_csv, (now - 100, now - 100))
+        os.utime(pending_csv, (now, now))
+
+        # Ingest the older file and mark it active
+        service.ingest(
+            file_source=active_csv,
+            filename="older_active.csv",
+            version_code="ACTIVE-V1",
+            set_active=True,
+        )
+
+        scanned = service.scan_dataset_directory(tmp_path)
+        assert len(scanned) == 2
+        # Even though newer_pending has newer mtime, active file MUST be first
+        assert scanned[0].filename == "older_active.csv"
+        assert scanned[0].is_active is True
+        assert scanned[1].filename == "newer_pending.csv"
+        assert scanned[1].is_active is False
+
+
     def test_ingest_creates_stations_and_dataset(
         self, tmp_path: Path, settings: Any
     ) -> None:

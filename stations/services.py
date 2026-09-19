@@ -134,7 +134,11 @@ class DatasetIngestionService:
             except Exception as exc:
                 logger.warning("Error reading dataset file %s: %s", path, exc)
 
+        results.sort(
+            key=lambda item: (not item.is_active, -item.modified_at.timestamp())
+        )
         return results
+
 
     def ingest(
         self,

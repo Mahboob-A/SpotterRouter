@@ -1,0 +1,354 @@
+openapi: 3.0.3
+info:
+  title: Fuel Router API
+  description: >-
+    Cost-optimal fuel stop planning engine for commercial fleet routing across the contiguous 48 US states.
+    Calculates cost-minimal refueling schedules under a 500-mile vehicle range constraint (10 MPG)
+    with geocoding, OSRM routing, Redis caching, and dynamic pricing datasets.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Local Development Server
+
+paths:
+  /api/health/:
+    get:
+      tags:
+        - System Health
+      summary: Health Check
+      description: Verify system operational health and connectivity to PostgreSQL, Redis, and OSRM.
+      operationId: checkHealth
+      responses:
+        '200':
+          description: System is healthy and operational.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+              examples:
+                healthy:
+                  value:
+                    status: ok
+
+  /api/trips/:
+    post:
+      tags:
+        - Trip Planning
+      summary: Plan Fuel-Optimal Route
+      description: Computes cost-optimal fuel stops and route geometry between origin and destination.
+      operationId: planTrip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripPlanRequest'
+            examples:
+              chicago_to_dallas:
+                summary: Chicago, IL to Dallas, TX
+                value:
+                  start: Chicago, IL
+                  end: Dallas, TX
+                  force_refresh: false
+              new_york_to_la:
+                summary: New York, NY to Los Angeles, CA
+                value:
+                  start: New York, NY
+                  end: Los Angeles, CA
+                  force_refresh: false
+              seattle_to_miami:
+                summary: Seattle, WA to Miami, FL
+                value:
+                  start: Seattle, WA
+                  end: Miami, FL
+                  force_refresh: false
+              atlanta_to_chicago:
+                summary: Atlanta, GA to Chicago, IL
+                value:
+                  start: Atlanta, GA
+                  end: Chicago, IL
+                  force_refresh: false
+      responses:
+        '200':
+          description: Trip plan successfully computed or retrieved from cache.
+          headers:
+            X-Cache:
+              schema:
+                type: string
+                enum: [HIT, MISS]
+              description: Cache resolution status (HIT indicates served from Redis; MISS indicates fresh computation).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripPlan'
+        '400':
+          description: Invalid request parameters or unresolved/out-of-scope location.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_fields:
+                  summary: Missing required fields
+                  value:
+                    error: invalid_request
+                    detail: "Missing required parameter: start"
+                unresolvable:
+                  summary: Location could not be resolved
+                  value:
+                    error: unresolvable_location
+                    detail: "Unable to resolve coordinates for origin: NonExistentCityXYZ999"
+                out_of_scope:
+                  summary: Location outside contiguous US
+                  value:
+                    error: out_of_scope_location
+                    detail: "Location Honolulu, HI is outside the contiguous United States."
+        '502':
+          description: Upstream routing or geocoding service error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Trip History
+      summary: List Recent Trips
+      description: Retrieve history of recently computed trip plans ordered by request recency.
+      operationId: listRecentTrips
+      responses:
+        '200':
+          description: List of recently planned trips.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TripPlanSummary'
+              examples:
+                recent_trips:
+                  value:
+                    results:
+                      - id: 6b151003-f1e0-4324-8d89-fd8781ae4766
+                        start_input: Chicago, IL
+                        end_input: Dallas, TX
+                        total_distance_miles: 967.3
+                        total_cost: 302.66
+                        created_at: '2026-09-18T12:00:00Z'
+                        last_requested_at: '2026-09-19T14:30:00Z'
+
+  /api/trips/{trip_id}/:
+    get:
+      tags:
+        - Trip History
+      summary: Get Trip Plan Detail
+      description: Retrieve complete details, fuel stops, GeoJSON route, and analysis for a trip plan.
+      operationId: getTripById
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          description: UUID of the trip plan
+          schema:
+            type: string
+            format: uuid
+          example: 6b151003-f1e0-4324-8d89-fd8781ae4766
+      responses:
+        '200':
+          description: Detailed trip plan object.
+          headers:
+            X-Cache:
+              schema:
+                type: string
+                enum: [HIT, MISS]
+              description: Cache resolution status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripPlan'
+        '404':
+          description: Trip plan not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_found:
+                  value:
+                    error: not_found
+                    detail: Trip plan with the specified ID was not found.
+
+components:
+  schemas:
+    TripPlanRequest:
+      type: object
+      required:
+        - start
+        - end
+      properties:
+        start:
+          type: string
+          description: Starting address, city/state, or coordinate pair within contiguous US.
+          example: Chicago, IL
+        end:
+          type: string
+          description: Destination address, city/state, or coordinate pair within contiguous US.
+          example: Dallas, TX
+        force_refresh:
+          type: boolean
+          default: false
+          description: Bypass cached result and force recalculation.
+          example: false
+
+    FuelStop:
+      type: object
+      properties:
+        stop_order:
+          type: integer
+          description: 1-indexed order of fuel stop along route.
+          example: 1
+        station_id:
+          type: integer
+          description: Database ID of the fuel station.
+          example: 42
+        station_opis_id:
+          type: string
+          description: OPIS truckstop identifier.
+          example: OPIS_1001
+        station_name:
+          type: string
+          description: Retail truck stop name.
+          example: SPEEDWAY #100
+        station_city:
+          type: string
+          example: Lafayette
+        station_state:
+          type: string
+          example: IN
+        distance_from_start_miles:
+          type: number
+          format: float
+          description: Miles traveled from origin to this fuel stop.
+          example: 415.0
+        gallons_purchased:
+          type: number
+          format: float
+          description: Gallons pumped at this stop.
+          example: 41.5
+        price_per_gallon:
+          type: number
+          format: float
+          description: Effective diesel retail price per gallon.
+          example: 3.129
+        cost:
+          type: number
+          format: float
+          description: Total dollar cost for this fuel purchase.
+          example: 129.85
+
+    TripPlan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 6b151003-f1e0-4324-8d89-fd8781ae4766
+        start_input:
+          type: string
+          example: Chicago, IL
+        end_input:
+          type: string
+          example: Dallas, TX
+        total_distance_miles:
+          type: number
+          format: float
+          example: 967.3
+        total_gallons:
+          type: number
+          format: float
+          example: 96.73
+        total_cost:
+          type: number
+          format: float
+          example: 302.66
+        dataset_version:
+          type: string
+          example: OPIS-2026-09-18
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-09-18T12:00:00Z'
+        last_requested_at:
+          type: string
+          format: date-time
+          example: '2026-09-19T14:30:00Z'
+        route_geometry:
+          type: object
+          description: GeoJSON LineString of the calculated route.
+          properties:
+            type:
+              type: string
+              example: LineString
+            coordinates:
+              type: array
+              items:
+                type: array
+                items:
+                  type: number
+              example: [[-87.6298, 41.8781], [-96.797, 32.7767]]
+        fuel_stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/FuelStop'
+        ai_explanation:
+          type: string
+          nullable: true
+          description: Strategic routing narrative and cost justification.
+          example: Route optimized along I-65 and I-30 with single stop in Lafayette, IN for maximum savings.
+
+    TripPlanSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 6b151003-f1e0-4324-8d89-fd8781ae4766
+        start_input:
+          type: string
+          example: Chicago, IL
+        end_input:
+          type: string
+          example: Dallas, TX
+        total_distance_miles:
+          type: number
+          format: float
+          example: 967.3
+        total_cost:
+          type: number
+          format: float
+          example: 302.66
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-09-18T12:00:00Z'
+        last_requested_at:
+          type: string
+          format: date-time
+          example: '2026-09-19T14:30:00Z'
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: invalid_request
+        detail:
+          type: string
+          example: "Missing required parameter: start"

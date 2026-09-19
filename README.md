@@ -182,13 +182,15 @@ The user interface is built using server-rendered Django templates and Leaflet.j
 
 ---
 
-## 6. Postman Test Suite
+## 6. Postman & OpenAPI Test Suite
 
-An importable Postman collection is provided at:
+Importable specifications are provided at:
 ```
-fuel-router.postman_collection.json
+fuel-router.openapi.yaml             # OpenAPI 3.0/3.1 YAML specification
+fuel-router.postman_collection.yaml  # Postman Collection in YAML format
 ```
 It contains pre-built requests for:
+
 - System health check
 - All 4 benchmark route presets
 - Trip detail retrieval

@@ -26,3 +26,8 @@ build/
 .codex/
 .impeccable
 .impeccable/
+
+# Postman workspace and local sync
+.postman/
+postman/
+

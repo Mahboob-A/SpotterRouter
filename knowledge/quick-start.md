@@ -158,18 +158,20 @@ curl -s http://localhost:8000/api/trips/
 
 ---
 
-## 7. Postman Collection
+## 7. Postman & OpenAPI Collection
 
-A pre-configured Postman collection is provided in the repository root:
+Pre-configured specifications are provided in the repository root:
 
 ```
-fuel-router.postman_collection.json
+fuel-router.openapi.yaml             # OpenAPI 3.0/3.1 YAML specification
+fuel-router.postman_collection.yaml  # Postman Collection in YAML format
 ```
 
 ### Importing into Postman
 1. Open Postman.
 2. Click **Import** in the upper left navigation.
-3. Select `fuel-router.postman_collection.json`.
+3. Select `fuel-router.openapi.yaml` (or `fuel-router.postman_collection.yaml`).
+
 4. The collection includes pre-built requests for:
    - System health check
    - All 4 benchmark preset route plans

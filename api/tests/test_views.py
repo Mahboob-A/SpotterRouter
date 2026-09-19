@@ -301,3 +301,20 @@ def test_health_check_disables_browsable_api_ui_on_html_accept(
     assert response.json() == {"status": "ok"}
     assert b"Django REST framework" not in response.content
 
+
+def test_get_trip_detail_dispatches_explanation_when_missing(
+    api_client: APIClient, sample_trip_plan: TripPlan
+) -> None:
+    sample_trip_plan.ai_explanation = None
+    sample_trip_plan.save()
+
+    url = reverse("trip-plan-detail", kwargs={"trip_id": sample_trip_plan.id})
+    with patch(
+        "explanations.tasks.generate_trip_explanation.delay"
+    ) as mock_delay:
+        response = api_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    mock_delay.assert_called_once_with(str(sample_trip_plan.id))
+
+

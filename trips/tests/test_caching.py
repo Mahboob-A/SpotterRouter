@@ -218,3 +218,20 @@ def test_cache_manager_exists_in_cache_degrades_gracefully_on_redis_error() -> N
 
     assert manager.exists_in_cache("some_key") is False
 
+
+def test_cache_manager_acquire_lock() -> None:
+    mock_redis = MagicMock()
+    mock_redis.set.return_value = True
+    manager = TripCacheManager(redis_client=mock_redis)
+
+    assert manager.acquire_lock("test_lock", ttl_seconds=60) is True
+    mock_redis.set.assert_called_once_with("lock:test_lock", "1", nx=True, ex=60)
+
+    # Empty key returns False
+    assert manager.acquire_lock("") is False
+
+    # Redis error returns False without raising
+    mock_redis.set.side_effect = redis.ConnectionError("Redis down")
+    assert manager.acquire_lock("error_lock") is False
+
+

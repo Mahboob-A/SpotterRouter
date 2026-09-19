@@ -4,6 +4,9 @@ services:
       context: .
       dockerfile: infra/docker/Dockerfile
       target: development
+    env_file:
+      - path: .env.dev
+        required: false
     volumes:
       - .:/app
     ports:
@@ -38,6 +41,9 @@ services:
       dockerfile: infra/docker/Dockerfile
       target: development
     command: /app/infra/scripts/start-celery.sh
+    env_file:
+      - path: .env.dev
+        required: false
     volumes:
       - .:/app
     environment:

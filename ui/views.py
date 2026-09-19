@@ -217,6 +217,16 @@ class TripDetailView(View):
         if trip is None:
             raise Http404("Trip plan does not exist.")
 
+        if not trip.ai_explanation and self._cache_manager.acquire_lock(
+            f"explain:{trip.id}", 60
+        ):
+            try:
+                from explanations.tasks import generate_trip_explanation
+
+                generate_trip_explanation.delay(str(trip.id))
+            except (ImportError, Exception):
+                pass
+
         route_geojson = "{}"
         if trip.route_geometry is not None:
             if hasattr(trip.route_geometry, "geojson"):

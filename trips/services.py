@@ -112,6 +112,15 @@ class TripPlanningService:
             if cached_plan is not None:
                 self._trips.touch_recency(cached_plan.id)
                 cached_plan.is_cache_hit = True
+                if not cached_plan.ai_explanation and self._cache_manager.acquire_lock(
+                    f"explain:{cached_plan.id}", 60
+                ):
+                    try:
+                        from explanations.tasks import generate_trip_explanation
+
+                        generate_trip_explanation.delay(str(cached_plan.id))
+                    except (ImportError, Exception):
+                        pass
                 return cached_plan
 
         start_coords = self._geocoding.resolve(start_input)

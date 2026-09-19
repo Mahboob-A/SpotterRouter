@@ -251,3 +251,19 @@ class TripCacheManager:
             return False
         return False
 
+    def acquire_lock(self, lock_key: str, ttl_seconds: int = 60) -> bool:
+        """Attempt to acquire a non-blocking lock with TTL using Redis SET NX."""
+        if not lock_key:
+            return False
+        try:
+            client = self._get_redis()
+            if client is not None:
+                return bool(
+                    client.set(f"lock:{lock_key}", "1", nx=True, ex=ttl_seconds)
+                )
+        except (redis.RedisError, Exception) as exc:
+            logger.warning("Redis acquire_lock error for key %s: %s", lock_key, exc)
+            return False
+        return False
+
+

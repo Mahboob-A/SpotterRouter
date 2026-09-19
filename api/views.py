@@ -90,6 +90,16 @@ class TripPlanDetailView(APIView):  # type: ignore[misc]
             and self._cache_manager.exists_in_cache(trip.cache_key)
         )
 
+        if not trip.ai_explanation and self._cache_manager.acquire_lock(
+            f"explain:{trip.id}", 60
+        ):
+            try:
+                from explanations.tasks import generate_trip_explanation
+
+                generate_trip_explanation.delay(str(trip.id))
+            except (ImportError, Exception):
+                pass
+
         response_serializer = TripPlanResponseSerializer(trip)
         response = Response(response_serializer.data, status=status.HTTP_200_OK)
         response["X-Cache"] = "HIT" if is_hit else "MISS"

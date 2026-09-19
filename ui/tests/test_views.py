@@ -794,3 +794,20 @@ def test_base_template_header_contains_github_link(client: Client, db: None) -> 
     assert theme_pos != -1
     assert api_docs_pos < github_pos < theme_pos
 
+
+def test_trip_detail_view_dispatches_explanation_when_missing(
+    client: Client, sample_trip_plan: TripPlan
+) -> None:
+    sample_trip_plan.ai_explanation = None
+    sample_trip_plan.save()
+
+    url = reverse("trip-detail", kwargs={"trip_id": sample_trip_plan.id})
+    with patch(
+        "explanations.tasks.generate_trip_explanation.delay"
+    ) as mock_delay:
+        response = client.get(url)
+
+    assert response.status_code == 200
+    mock_delay.assert_called_once_with(str(sample_trip_plan.id))
+
+

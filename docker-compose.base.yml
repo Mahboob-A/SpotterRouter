@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    platform: linux/amd64
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fuel_router}
+      POSTGRES_USER: ${POSTGRES_USER:-fuel_router}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fuel_router}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - fuel_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fuel_router} -d ${POSTGRES_DB:-fuel_router}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - fuel_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+networks:
+  fuel_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  static_volume:

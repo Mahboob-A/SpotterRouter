@@ -5,7 +5,9 @@ FROM python:3.13-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH="/app/.venv/bin:$PATH" \
+    UV_PROJECT_ENVIRONMENT="/opt/venv" \
+    VIRTUAL_ENV="/opt/venv" \
+    PATH="/opt/venv/bin:$PATH" \
     HOME="/home/appuser"
 
 WORKDIR /app
@@ -25,8 +27,8 @@ RUN apt-get update \
 # Create unprivileged system user and group
 RUN groupadd -r -g 1000 appgroup \
     && useradd -r -u 1000 -g appgroup -d /home/appuser -m -s /sbin/nologin appuser \
-    && mkdir -p /home/appuser/.uszipcode /app/staticfiles \
-    && chown -R appuser:appgroup /home/appuser /app
+    && mkdir -p /home/appuser/.uszipcode /app/staticfiles /opt/venv \
+    && chown -R appuser:appgroup /home/appuser /app /opt/venv
 
 # -----------------------------------------------------------------------------
 # Stage 2: Dependencies builder
@@ -35,12 +37,12 @@ FROM base AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:0.9.7 /uv /usr/local/bin/uv
 
-# Install Python packages into isolated virtualenv
+# Install Python packages into isolated virtualenv at /opt/venv
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --extra dev
 
-# Pre-cache uszipcode static SQLite database in builder
-RUN python -c "from uszipcode import SearchEngine; SearchEngine()" \
+# Pre-cache uszipcode static SQLite database in builder using the virtualenv python
+RUN /opt/venv/bin/python -c "from uszipcode import SearchEngine; SearchEngine()" \
     && if [ -d /root/.uszipcode ]; then cp -r /root/.uszipcode/* /home/appuser/.uszipcode/ 2>/dev/null || true; fi \
     && chown -R appuser:appgroup /home/appuser/.uszipcode
 
@@ -50,7 +52,7 @@ RUN python -c "from uszipcode import SearchEngine; SearchEngine()" \
 FROM base AS development
 
 # Copy dependencies and pre-cached geocoding data from builder
-COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder --chown=appuser:appgroup /home/appuser/.uszipcode /home/appuser/.uszipcode
 
 # Copy complete project source code and operational scripts
@@ -69,7 +71,7 @@ CMD ["/app/infra/scripts/start-backend-dev.sh"]
 # -----------------------------------------------------------------------------
 FROM base AS production
 
-COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder --chown=appuser:appgroup /home/appuser/.uszipcode /home/appuser/.uszipcode
 
 # Copy complete project source code

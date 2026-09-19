@@ -1,0 +1,53 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+      target: development
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-local-development-secret}
+      DEBUG: ${DEBUG:-True}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,backend}
+      DATABASE_URL: ${DATABASE_URL:-postgis://fuel_router:fuel_router@db:5432/fuel_router}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      FIREWORKS_API_KEY: ${FIREWORKS_API_KEY:-}
+      FIREWORKS_LLM_MODEL_NAME: ${FIREWORKS_LLM_MODEL_NAME:-accounts/fireworks/models/deepseek-v4p1-flash}
+      FIREWORKS_LLM_MODEL_NAE: ${FIREWORKS_LLM_MODEL_NAE:-}
+    networks:
+      - fuel_network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+      target: development
+    command: /app/infra/scripts/start-celery.sh
+    volumes:
+      - .:/app
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-local-development-secret}
+      DEBUG: ${DEBUG:-True}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,backend}
+      DATABASE_URL: ${DATABASE_URL:-postgis://fuel_router:fuel_router@db:5432/fuel_router}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      FIREWORKS_API_KEY: ${FIREWORKS_API_KEY:-}
+      FIREWORKS_LLM_MODEL_NAME: ${FIREWORKS_LLM_MODEL_NAME:-accounts/fireworks/models/deepseek-v4p1-flash}
+      FIREWORKS_LLM_MODEL_NAE: ${FIREWORKS_LLM_MODEL_NAE:-}
+    networks:
+      - fuel_network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

@@ -116,6 +116,25 @@ class TestTripPlanRepository:
         assert recent[0].created_at >= recent[1].created_at
         assert recent[1].created_at >= recent[2].created_at
 
+    def test_touch_recency_updates_ordering(self) -> None:
+        repo = TripPlanRepository()
+        trip_first = _make_trip_plan("cache-ordering-1")
+        repo.save(trip_first)
+        trip_second = _make_trip_plan("cache-ordering-2")
+        repo.save(trip_second)
+
+        # Initially, trip_second was created after trip_first
+        recent = repo.list_recent(limit=2)
+        assert recent[0].id == trip_second.id
+
+        # Touch recency on trip_first
+        success = repo.touch_recency(trip_first.id)
+        assert success is True
+
+        # Now trip_first should be bumped to the top of list_recent
+        bumped = repo.list_recent(limit=2)
+        assert bumped[0].id == trip_first.id
+
 
 @pytest.mark.django_db
 class TestFuelStopRepository:

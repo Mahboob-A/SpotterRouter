@@ -42,10 +42,18 @@ class TripPlanView(APIView):  # type: ignore[misc]
     def post(self, request: Request) -> Response:
         serializer = TripPlanRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        plan = self._service.plan_trip(
-            start_input=serializer.validated_data["start"],
-            end_input=serializer.validated_data["end"],
-        )
+        force_refresh = serializer.validated_data.get("force_refresh", False)
+        if force_refresh:
+            plan = self._service.plan_trip(
+                start_input=serializer.validated_data["start"],
+                end_input=serializer.validated_data["end"],
+                force_refresh=True,
+            )
+        else:
+            plan = self._service.plan_trip(
+                start_input=serializer.validated_data["start"],
+                end_input=serializer.validated_data["end"],
+            )
         response_serializer = TripPlanResponseSerializer(plan)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 

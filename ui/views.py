@@ -71,8 +71,16 @@ class HomeView(View):
             }
             return render(request, "ui/home.html", context, status=400)
 
+        force_refresh = request.POST.get("force_refresh") in ("1", "true", "True", "on")
         try:
-            plan = self._service.plan_trip(start_input=start, end_input=end)
+            if force_refresh:
+                plan = self._service.plan_trip(
+                    start_input=start,
+                    end_input=end,
+                    force_refresh=True,
+                )
+            else:
+                plan = self._service.plan_trip(start_input=start, end_input=end)
             return redirect("trip-detail", trip_id=plan.id)
         except FuelRouterError as exc:
             context = {
@@ -129,8 +137,10 @@ class RecentTripsApiView(View):
                         else "-"
                     ),
                     "created_at": (
-                        trip.created_at.strftime("%Y-%m-%d %H:%M")
-                        if trip.created_at
+                        (trip.last_requested_at or trip.created_at).strftime(
+                            "%Y-%m-%d %H:%M"
+                        )
+                        if (trip.last_requested_at or trip.created_at)
                         else ""
                     ),
                     "detail_url": f"/trips/{trip.id}/",

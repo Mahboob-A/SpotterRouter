@@ -42,9 +42,23 @@ class TripPlanRepository(BaseRepository[TripPlan]):
         )
         return updated > 0
 
+    def touch_recency(self, trip_id: uuid.UUID) -> bool:
+        from django.utils import timezone
+
+        updated = self.model.objects.filter(pk=trip_id).update(
+            last_requested_at=timezone.now()
+        )
+        return updated > 0
+
     def list_recent(self, limit: int = 20, offset: int = 0) -> list[TripPlan]:
+        from django.db.models.functions import Coalesce
+
         return list(
             self.model.objects.all()
+            .order_by(
+                Coalesce("last_requested_at", "created_at").desc(),
+                "-created_at",
+            )
             .select_related("pricing_dataset")
             .prefetch_related("fuel_stops__station")[offset : offset + limit]
         )

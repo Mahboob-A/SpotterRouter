@@ -19,6 +19,9 @@ class TripPlanRequestSerializer(serializers.Serializer):  # type: ignore[misc]
         trim_whitespace=True,
         max_length=255,
     )
+    force_refresh = serializers.BooleanField(
+        required=False,
+    )
 
 
 class FuelStopResponseSerializer(serializers.ModelSerializer):  # type: ignore[misc]
@@ -110,6 +113,7 @@ class TripPlanResponseSerializer(serializers.ModelSerializer):  # type: ignore[m
             "fuel_stops",
             "ai_explanation",
             "created_at",
+            "last_requested_at",
         ]
 
     def get_route_geometry(self, obj: TripPlan) -> dict[str, Any]:
@@ -159,4 +163,5 @@ class TripPlanListSerializer(serializers.ModelSerializer):  # type: ignore[misc]
             "total_distance_miles",
             "total_cost",
             "created_at",
+            "last_requested_at",
         ]

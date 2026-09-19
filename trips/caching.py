@@ -83,6 +83,11 @@ def serialize_trip_plan(trip_plan: TripPlan) -> str:
         "created_at": (
             trip_plan.created_at.isoformat() if trip_plan.created_at else None
         ),
+        "last_requested_at": (
+            trip_plan.last_requested_at.isoformat()
+            if trip_plan.last_requested_at is not None
+            else None
+        ),
         "fuel_stops": fuel_stops_data,
     }
     return json.dumps(payload)
@@ -131,6 +136,11 @@ def deserialize_trip_plan(payload_str: str) -> TripPlan:
             datetime.fromisoformat(data["created_at"])
             if data.get("created_at")
             else datetime.now()
+        ),
+        last_requested_at=(
+            datetime.fromisoformat(data["last_requested_at"])
+            if data.get("last_requested_at")
+            else None
         ),
     )
     if pricing_dataset:

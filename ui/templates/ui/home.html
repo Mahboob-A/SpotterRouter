@@ -221,7 +221,7 @@
                         <span style="color: var(--text-muted);">-</span>
                         {% endif %}
                     </td>
-                    <td class="tabular-nums">{{ trip.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="tabular-nums">{{ trip.last_requested_at|default:trip.created_at|date:"Y-m-d H:i" }}</td>
                     <td>
                         <a href="{% url 'trip-detail' trip.id %}" class="btn btn-secondary btn-sm">
                             View Map

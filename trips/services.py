@@ -2,7 +2,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
+from django.utils import timezone
 
 from core.constants import CORRIDOR_BUFFER_MILES, MAX_RANGE_MILES, MPG_CONSTANT
 from routing.services import GeocodingService, RoutingService
@@ -93,7 +94,12 @@ class TripPlanningService:
         self._datasets = dataset_repository or PricingDatasetRepository()
         self._corridor_buffer_miles = corridor_buffer_miles
 
-    def plan_trip(self, start_input: str, end_input: str) -> TripPlan:
+    def plan_trip(
+        self,
+        start_input: str,
+        end_input: str,
+        force_refresh: bool = False,
+    ) -> TripPlan:
         """Compute an optimal fuel-stop route or retrieve a cached plan."""
         active_dataset = self._datasets.get_active()
         version_code = active_dataset.version_code if active_dataset else ""
@@ -101,9 +107,11 @@ class TripPlanningService:
             start_input, end_input, version_code=version_code
         )
 
-        cached_plan = self._cache_manager.get(cache_key)
-        if cached_plan is not None:
-            return cached_plan
+        if not force_refresh:
+            cached_plan = self._cache_manager.get(cache_key)
+            if cached_plan is not None:
+                self._trips.touch_recency(cached_plan.id)
+                return cached_plan
 
         start_coords = self._geocoding.resolve(start_input)
         end_coords = self._geocoding.resolve(end_input)
@@ -123,20 +131,46 @@ class TripPlanningService:
             route_result.total_distance_miles,
         )
 
+        now = timezone.now()
         with transaction.atomic():
-            trip_plan = TripPlan(
-                start_input=start_input,
-                end_input=end_input,
-                start_point=start_point,
-                end_point=end_point,
-                route_geometry=route_result.route_geometry,
-                total_distance_miles=route_result.total_distance_miles,
-                total_gallons=opt_result.total_gallons,
-                total_cost=opt_result.total_cost,
-                cache_key=cache_key,
-                pricing_dataset=active_dataset,
-            )
-            saved_plan = self._trips.save(trip_plan)
+            existing_plan = self._trips.get_by_cache_key(cache_key)
+            if existing_plan is not None:
+                existing_plan.start_input = start_input
+                existing_plan.end_input = end_input
+                existing_plan.start_point = start_point
+                existing_plan.end_point = end_point
+                existing_plan.route_geometry = route_result.route_geometry
+                existing_plan.total_distance_miles = route_result.total_distance_miles
+                existing_plan.total_gallons = opt_result.total_gallons
+                existing_plan.total_cost = opt_result.total_cost
+                existing_plan.pricing_dataset = active_dataset
+                existing_plan.ai_explanation = None
+                existing_plan.last_requested_at = now
+                existing_plan.fuel_stops.all().delete()
+                saved_plan = self._trips.save(existing_plan)
+            else:
+                trip_plan = TripPlan(
+                    start_input=start_input,
+                    end_input=end_input,
+                    start_point=start_point,
+                    end_point=end_point,
+                    route_geometry=route_result.route_geometry,
+                    total_distance_miles=route_result.total_distance_miles,
+                    total_gallons=opt_result.total_gallons,
+                    total_cost=opt_result.total_cost,
+                    cache_key=cache_key,
+                    pricing_dataset=active_dataset,
+                    last_requested_at=now,
+                )
+                try:
+                    saved_plan = self._trips.save(trip_plan)
+                except IntegrityError:
+                    persisted_plan = self._trips.get_by_cache_key(cache_key)
+                    if persisted_plan is not None:
+                        self._cache_manager.set(persisted_plan)
+                        self._trips.touch_recency(persisted_plan.id)
+                        return persisted_plan
+                    raise
 
             fuel_stops: list[FuelStop] = [
                 FuelStop(

@@ -4,6 +4,9 @@ set -euo pipefail
 echo "Applying database migrations..."
 python manage.py migrate --noinput
 
+echo "Collecting static assets into static volume..."
+python manage.py collectstatic --noinput
+
 echo "Starting production backend server on 0.0.0.0:8000..."
 exec gunicorn fuel_router.wsgi:application \
     --bind 0.0.0.0:8000 \

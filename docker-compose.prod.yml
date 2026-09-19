@@ -51,3 +51,19 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  nginx:
+    build:
+      context: .
+      dockerfile: infra/docker/nginx/Dockerfile
+    ports:
+      - "${PORT:-80}:80"
+    volumes:
+      - static_volume:/app/staticfiles:ro
+    networks:
+      - fuel_network
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+

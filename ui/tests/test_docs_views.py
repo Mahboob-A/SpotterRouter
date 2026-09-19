@@ -22,7 +22,7 @@ def test_docs_view_default_render() -> None:
 def test_docs_view_specific_document() -> None:
     client = Client()
     url = reverse("docs")
-    target_slug = "05-learning-journey/first-time-with-postgis-and-spatial-sql"
+    target_slug = "07-Learning-journey/first-time-with-postgis-and-spatial-sql"
     response = client.get(url, {"doc": target_slug})
 
     assert response.status_code == 200
@@ -35,7 +35,7 @@ def test_docs_view_specific_document() -> None:
 def test_docs_view_json_format() -> None:
     client = Client()
     url = reverse("docs")
-    target_slug = "02-current-system/greedy-lookahead-refueling-engine"
+    target_slug = "02-Current-system/greedy-lookahead-refueling-engine"
     response = client.get(url, {"doc": target_slug, "format": "json"})
 
     assert response.status_code == 200

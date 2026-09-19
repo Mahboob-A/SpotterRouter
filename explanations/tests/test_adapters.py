@@ -97,7 +97,8 @@ def test_fireworks_client_success(mock_post: MagicMock) -> None:
         {"role": "user", "content": "Route has 1 stop"},
     ]
     assert call_kwargs["json"]["temperature"] == 0.2
-    assert call_kwargs["json"]["max_tokens"] == 1200
+    assert call_kwargs["json"]["max_tokens"] == 1000
+    assert call_kwargs["json"]["reasoning_effort"] == "none"
 
 
 @patch("requests.post")
@@ -131,3 +132,56 @@ def test_fireworks_client_malformed_response_json(mock_post: MagicMock) -> None:
     client = FireworksLLMClient(api_key="test-key")
     with pytest.raises(LLMServiceError, match="Malformed response"):
         client.generate_explanation("Route summary")
+
+
+@patch("requests.post")
+def test_fireworks_client_falls_back_to_reasoning_content(mock_post: MagicMock) -> None:
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "id": "cmpl-456",
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": "",
+                    "reasoning_content": "Reasoned explanation about route stops.",
+                },
+                "finish_reason": "stop",
+            }
+        ],
+    }
+    mock_post.return_value = mock_response
+
+    client = FireworksLLMClient(api_key="test-key")
+    result = client.generate_explanation("Route summary")
+    assert result == "Reasoned explanation about route stops."
+
+
+@patch("requests.post")
+def test_fireworks_client_raises_when_both_content_and_reasoning_empty(
+    mock_post: MagicMock,
+) -> None:
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "id": "cmpl-789",
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": "   ",
+                    "reasoning_content": "   ",
+                },
+                "finish_reason": "stop",
+            }
+        ],
+    }
+    mock_post.return_value = mock_response
+
+    client = FireworksLLMClient(api_key="test-key")
+    with pytest.raises(LLMServiceError, match="missing or empty 'content'"):
+        client.generate_explanation("Route summary")
+

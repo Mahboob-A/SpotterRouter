@@ -50,7 +50,7 @@ class FireworksLLMClient(LLMClient):
         api_key: str | None = None,
         model: str | None = None,
         base_url: str | None = None,
-        timeout_seconds: float = 10.0,
+        timeout_seconds: float = 30.0,
     ) -> None:
         configured_key = getattr(
             settings,
@@ -89,7 +89,8 @@ class FireworksLLMClient(LLMClient):
                 {"role": "user", "content": prompt},
             ],
             "temperature": 0.2,
-            "max_tokens": 1200,
+            "max_tokens": 1000,
+            "reasoning_effort": "none",
         }
 
         headers = {
@@ -132,8 +133,15 @@ class FireworksLLMClient(LLMClient):
             if not isinstance(message, dict):
                 raise LLMServiceError("Malformed response: invalid message element")
             content = message.get("content")
-            if not isinstance(content, str):
-                raise LLMServiceError("Malformed response: missing 'content' string")
+            if not content or not isinstance(content, str) or not content.strip():
+                # Defensive check: if content is empty but reasoning_content exists, use reasoning_content
+                reasoning = message.get("reasoning_content")
+                if isinstance(reasoning, str) and reasoning.strip():
+                    content = reasoning.strip()
+                else:
+                    raise LLMServiceError(
+                        "Malformed response: missing or empty 'content' string"
+                    )
             return str(content).strip()
         except (ValueError, KeyError, IndexError) as exc:
             if isinstance(exc, LLMServiceError):

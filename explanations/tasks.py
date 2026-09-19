@@ -84,12 +84,20 @@ def generate_trip_explanation(
             trip_plan.ai_explanation = UNCONFIGURED_EXPLANATION_NOTICE
             cache.set(trip_plan)
             return
+        except Exception as llm_err:
+            logger.warning(
+                "LLM explanation generation failed for trip %s (%s); applying fallback",
+                trip_id,
+                llm_err,
+            )
+            explanation = service.build_fallback_explanation(trip_plan)
+
         if not explanation or not explanation.strip():
             logger.warning(
-                "ExplanationService returned empty explanation for trip %s",
+                "ExplanationService returned empty explanation for trip %s; applying fallback",
                 trip_id,
             )
-            return
+            explanation = service.build_fallback_explanation(trip_plan)
 
         cleaned = explanation.strip()
         repo.update_explanation(trip_plan.id, cleaned)

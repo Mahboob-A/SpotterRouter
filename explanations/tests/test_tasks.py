@@ -152,10 +152,13 @@ def test_generate_trip_explanation_service_exception_isolated(settings: Any) -> 
     mock_service.explain.side_effect = LLMServiceError(
         "Fireworks API rate limit exceeded"
     )
+    mock_service.build_fallback_explanation.return_value = (
+        "Deterministic fallback explanation."
+    )
 
     mock_cache = MagicMock(spec=TripCacheManager)
 
-    # Must complete cleanly without raising exception
+    # Must complete cleanly without raising exception, applying fallback
     generate_trip_explanation(
         trip_id=str(trip.id),
         trip_repository=mock_repo,
@@ -164,5 +167,40 @@ def test_generate_trip_explanation_service_exception_isolated(settings: Any) -> 
     )
 
     mock_service.explain.assert_called_once_with(trip)
-    mock_repo.update_explanation.assert_not_called()
-    mock_cache.set.assert_not_called()
+    mock_service.build_fallback_explanation.assert_called_once_with(trip)
+    mock_repo.update_explanation.assert_called_once_with(
+        trip.id, "Deterministic fallback explanation."
+    )
+    mock_cache.set.assert_called_once_with(trip)
+    assert trip.ai_explanation == "Deterministic fallback explanation."
+
+
+def test_generate_trip_explanation_empty_string_falls_back(settings: Any) -> None:
+    settings.FIREWORKS_API_KEY = "test-api-key"
+    trip = _make_sample_trip(has_explanation=False)
+    mock_repo = MagicMock(spec=TripPlanRepository)
+    mock_repo.get_by_id.return_value = trip
+
+    mock_service = MagicMock(spec=ExplanationService)
+    mock_service.explain.return_value = "   "
+    mock_service.build_fallback_explanation.return_value = (
+        "Deterministic fallback for empty response."
+    )
+
+    mock_cache = MagicMock(spec=TripCacheManager)
+
+    generate_trip_explanation(
+        trip_id=str(trip.id),
+        trip_repository=mock_repo,
+        explanation_service=mock_service,
+        cache_manager=mock_cache,
+    )
+
+    mock_service.explain.assert_called_once_with(trip)
+    mock_service.build_fallback_explanation.assert_called_once_with(trip)
+    mock_repo.update_explanation.assert_called_once_with(
+        trip.id, "Deterministic fallback for empty response."
+    )
+    mock_cache.set.assert_called_once_with(trip)
+    assert trip.ai_explanation == "Deterministic fallback for empty response."
+

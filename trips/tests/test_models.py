@@ -250,3 +250,52 @@ class TestFuelStopModel:
 
         with pytest.raises(ProtectedError):
             station.delete()
+
+    def test_total_gallons_purchased_and_initial_fuel_gallons_properties(self) -> None:
+        start_pt = Point(-87.6298, 41.8781, srid=4326)
+        end_pt = Point(-96.7970, 32.7767, srid=4326)
+        route_geom = LineString([start_pt, end_pt], srid=4326)
+
+        trip = TripPlan.objects.create(
+            start_input="Chicago, IL",
+            end_input="Dallas, TX",
+            start_point=start_pt,
+            end_point=end_pt,
+            route_geometry=route_geom,
+            total_distance_miles=Decimal("968.45"),
+            total_gallons=Decimal("96.845"),
+            total_cost=Decimal("135.09"),
+            cache_key="trip-props-test",
+        )
+
+        assert trip.initial_fuel_gallons == Decimal("50.000")
+        assert trip.total_gallons_purchased == Decimal("0.000")
+
+        station = Station.objects.create(
+            opis_id="PROP_TEST_1",
+            name="Station Test",
+            city="Marion",
+            state="IL",
+            retail_price=Decimal("2.929"),
+        )
+        FuelStop.objects.create(
+            trip_plan=trip,
+            station=station,
+            stop_order=1,
+            distance_from_start_miles=Decimal("303.73"),
+            gallons_purchased=Decimal("28.334"),
+            price_per_gallon=Decimal("2.929"),
+            cost=Decimal("82.99"),
+        )
+        FuelStop.objects.create(
+            trip_plan=trip,
+            station=station,
+            stop_order=2,
+            distance_from_start_miles=Decimal("783.34"),
+            gallons_purchased=Decimal("18.511"),
+            price_per_gallon=Decimal("2.857"),
+            cost=Decimal("52.89"),
+        )
+
+        refreshed = TripPlan.objects.prefetch_related("fuel_stops").get(id=trip.id)
+        assert refreshed.total_gallons_purchased == Decimal("46.845")

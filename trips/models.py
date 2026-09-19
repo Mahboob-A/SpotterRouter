@@ -1,6 +1,9 @@
 import uuid
+from decimal import Decimal
 
 from django.contrib.gis.db import models
+
+from core.constants import MAX_RANGE_MILES, MPG_CONSTANT
 
 
 class TripPlan(models.Model):
@@ -26,6 +29,23 @@ class TripPlan(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+    @property
+    def total_gallons_purchased(self) -> Decimal:
+        """Sum of gallons purchased across planned en-route refueling stops."""
+        prefetched = getattr(self, "_prefetched_objects_cache", {})
+        if "fuel_stops" in prefetched:
+            stops = prefetched["fuel_stops"]
+        else:
+            stops = list(self.fuel_stops.all())
+        if not stops:
+            return Decimal("0.000")
+        return sum((stop.gallons_purchased for stop in stops), Decimal("0.000"))
+
+    @property
+    def initial_fuel_gallons(self) -> Decimal:
+        """Vehicle tank capacity pre-loaded at origin (500-mi range at 10 MPG)."""
+        return Decimal(str(MAX_RANGE_MILES)) / MPG_CONSTANT
 
 
 class FuelStop(models.Model):

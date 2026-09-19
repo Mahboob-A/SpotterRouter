@@ -81,6 +81,18 @@ class TripPlanResponseSerializer(serializers.ModelSerializer):  # type: ignore[m
         decimal_places=2,
         coerce_to_string=False,
     )
+    total_gallons_purchased = serializers.DecimalField(
+        max_digits=8,
+        decimal_places=3,
+        coerce_to_string=False,
+        read_only=True,
+    )
+    initial_fuel_gallons = serializers.DecimalField(
+        max_digits=8,
+        decimal_places=3,
+        coerce_to_string=False,
+        read_only=True,
+    )
 
     class Meta:
         model = TripPlan
@@ -92,6 +104,8 @@ class TripPlanResponseSerializer(serializers.ModelSerializer):  # type: ignore[m
             "route_geometry",
             "total_distance_miles",
             "total_gallons",
+            "total_gallons_purchased",
+            "initial_fuel_gallons",
             "total_cost",
             "fuel_stops",
             "ai_explanation",

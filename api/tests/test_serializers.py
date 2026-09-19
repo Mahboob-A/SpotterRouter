@@ -143,6 +143,8 @@ def test_trip_plan_response_serializer() -> None:
     assert data["end_input"] == "Dallas, TX"
     assert data["total_distance_miles"] == Decimal("967.30")
     assert data["total_gallons"] == Decimal("96.730")
+    assert data["total_gallons_purchased"] == Decimal("41.000")
+    assert data["initial_fuel_gallons"] == Decimal("50.000")
     assert data["total_cost"] == Decimal("341.52")
     assert data["ai_explanation"] is None
     assert "created_at" in data

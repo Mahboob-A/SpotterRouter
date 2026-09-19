@@ -90,3 +90,31 @@ def test_docs_nav_link_active_state() -> None:
     assert response.status_code == 200
     content = response.content.decode("utf-8")
     assert 'href="/docs/" class="active"' in content
+
+
+@pytest.mark.django_db
+def test_docs_view_fullwidth_resizer_and_collapsed_folders() -> None:
+    client = Client()
+    url = reverse("docs")
+    response = client.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+    assert 'class="main-docs"' in content
+    assert 'id="vscode-resizer"' in content
+    assert 'folder-header collapsed' in content
+    assert 'folder-children collapsed' in content
+
+
+@pytest.mark.django_db
+def test_home_hero_grid_lateral_fading() -> None:
+    client = Client()
+    url = reverse("home")
+    response = client.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+    assert "hero-grid-overlay" in content
+    assert "black 240px" in content
+    assert "calc(100% - 240px)" in content
+

@@ -2,10 +2,12 @@
 
 {% block title %}{{ active_doc.metadata.title }} - SpotterRouter Documentation{% endblock %}
 
+{% block main_class %}main-docs{% endblock %}
+
 {% block content %}
 <div class="docs-workspace">
     <!-- Left Pane: VS Code Explorer Sidebar -->
-    <aside class="vscode-sidebar" aria-label="Documentation Explorer">
+    <aside class="vscode-sidebar" id="vscode-sidebar" aria-label="Documentation Explorer">
         <div class="sidebar-header">
             <div class="sidebar-brand-row">
                 <span class="sidebar-heading">EXPLORER: SPOTTER-DOCS</span>
@@ -24,7 +26,7 @@
         <div class="sidebar-tree" id="docs-tree">
             {% for cat in categories %}
             <div class="folder-group" id="folder-group-{{ cat.id }}" data-category="{{ cat.id }}">
-                <div class="folder-header" onclick="toggleFolder('{{ cat.id }}')" role="button" tabindex="0" aria-expanded="true">
+                <div class="folder-header collapsed" onclick="toggleFolder('{{ cat.id }}')" role="button" tabindex="0" aria-expanded="false">
                     <span class="folder-chevron" id="chevron-{{ cat.id }}">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="6 9 12 15 18 9"></polyline>
@@ -37,7 +39,7 @@
                     </span>
                     <span class="folder-title">{{ cat.title }}</span>
                 </div>
-                <div class="folder-children" id="children-{{ cat.id }}">
+                <div class="folder-children collapsed" id="children-{{ cat.id }}">
                     {% for doc in cat.docs %}
                     <a href="?doc={{ doc.slug }}" class="file-item {% if active_slug == doc.slug %}active{% endif %}" data-slug="{{ doc.slug }}" data-title="{{ doc.title }}" data-summary="{{ doc.summary }}" onclick="loadDoc(event, '{{ doc.slug }}')">
                         <span class="file-badge">MD</span>
@@ -53,8 +55,11 @@
         </div>
     </aside>
 
+    <!-- Resizer Splitter Handle -->
+    <div class="vscode-resizer" id="vscode-resizer" role="separator" aria-orientation="vertical" title="Drag to adjust sidebar width, double-click to reset"></div>
+
     <!-- Right Pane: VS Code Editor & Reader -->
-    <section class="vscode-editor" aria-label="Document Reader">
+    <section class="vscode-editor" id="vscode-editor" aria-label="Document Reader">
         <!-- Editor Tab Bar -->
         <div class="editor-tab-bar">
             <div class="editor-tab active" id="editor-active-tab">
@@ -119,25 +124,54 @@
     /* Docs Workspace Layout */
     .docs-workspace {
         display: flex;
-        min-height: calc(100vh - 120px);
-        max-width: 1400px;
-        margin: 0 auto;
-        border: 1px solid var(--border-color);
+        min-height: calc(100vh - 115px);
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        border: none;
+        border-top: 1px solid var(--border-color);
         background-color: var(--card-bg);
-        border-radius: 8px;
+        border-radius: 0;
         overflow: hidden;
-        box-shadow: var(--shadow-card);
+        box-shadow: none;
     }
 
     /* Left Sidebar: VS Code Explorer */
     .vscode-sidebar {
-        width: 330px;
+        width: 320px;
+        min-width: 180px;
+        max-width: 800px;
         flex-shrink: 0;
         background-color: var(--card-subtle);
         border-right: 1px solid var(--border-color);
         display: flex;
         flex-direction: column;
         user-select: none;
+    }
+
+    /* Resizer Splitter */
+    .vscode-resizer {
+        width: 5px;
+        background-color: var(--border-color);
+        cursor: col-resize;
+        position: relative;
+        flex-shrink: 0;
+        transition: background-color 0.15s ease;
+        z-index: 10;
+    }
+
+    .vscode-resizer:hover,
+    .vscode-resizer.active {
+        background-color: var(--primary);
+    }
+
+    body.is-resizing {
+        cursor: col-resize !important;
+        user-select: none !important;
+    }
+
+    body.is-resizing * {
+        user-select: none !important;
     }
 
     .sidebar-header {
@@ -371,8 +405,10 @@
 
     /* Article Reader Area */
     .doc-container {
-        padding: 32px 40px;
-        max-width: 920px;
+        padding: 32px clamp(24px, 4vw, 56px);
+        max-width: 1060px;
+        width: 100%;
+        margin: 0 auto;
         overflow-y: auto;
         flex: 1;
     }
@@ -871,6 +907,9 @@
                 window.history.pushState({ doc: slug }, data.title, "?doc=" + encodeURIComponent(slug));
 
                 // Scroll reader to top
+                // Expand the folder containing the newly loaded document
+                expandFolderForDoc(slug);
+
                 var container = document.getElementById("doc-container");
                 if (container) container.scrollTop = 0;
             })
@@ -879,6 +918,24 @@
                 // Fallback to normal navigation
                 window.location.href = "?doc=" + encodeURIComponent(slug);
             });
+    }
+
+    function expandFolderForDoc(slug) {
+        var activeItem = document.querySelector('.file-item[data-slug="' + slug + '"]');
+        if (activeItem) {
+            var group = activeItem.closest(".folder-group");
+            if (group) {
+                var catId = group.getAttribute("data-category");
+                var header = group.querySelector(".folder-header");
+                var children = document.getElementById("children-" + catId);
+                if (children && header) {
+                    children.classList.remove("collapsed");
+                    header.classList.remove("collapsed");
+                    header.setAttribute("aria-expanded", "true");
+                    sessionStorage.setItem("spotter_folder_" + catId, "expanded");
+                }
+            }
+        }
     }
 
     function escapeHtml(text) {
@@ -915,15 +972,68 @@
         }
     });
 
-    // Restore saved folder states on page load
+    // Initialize resizer and restore folder/width preferences
     document.addEventListener("DOMContentLoaded", function() {
+        // Init resizer splitter
+        var resizer = document.getElementById("vscode-resizer");
+        var sidebar = document.getElementById("vscode-sidebar");
+        if (resizer && sidebar) {
+            var savedWidth = localStorage.getItem("spotter_docs_sidebar_width");
+            if (savedWidth) {
+                var w = parseInt(savedWidth, 10);
+                if (w >= 180 && w <= 800) {
+                    sidebar.style.width = w + "px";
+                }
+            }
+
+            var isDragging = false;
+            var startX = 0;
+            var startWidth = 0;
+
+            resizer.addEventListener("mousedown", function(e) {
+                isDragging = true;
+                startX = e.clientX;
+                startWidth = sidebar.getBoundingClientRect().width;
+                document.body.classList.add("is-resizing");
+                resizer.classList.add("active");
+                e.preventDefault();
+            });
+
+            document.addEventListener("mousemove", function(e) {
+                if (!isDragging) return;
+                var delta = e.clientX - startX;
+                var newWidth = Math.max(180, Math.min(800, startWidth + delta));
+                sidebar.style.width = newWidth + "px";
+            });
+
+            document.addEventListener("mouseup", function() {
+                if (!isDragging) return;
+                isDragging = false;
+                document.body.classList.remove("is-resizing");
+                resizer.classList.remove("active");
+                var finalWidth = Math.round(sidebar.getBoundingClientRect().width);
+                localStorage.setItem("spotter_docs_sidebar_width", finalWidth);
+            });
+
+            resizer.addEventListener("dblclick", function() {
+                sidebar.style.width = "320px";
+                localStorage.setItem("spotter_docs_sidebar_width", "320");
+            });
+        }
+
+        // Restore saved folder states on page load
         document.querySelectorAll(".folder-group").forEach(function(fg) {
             var catId = fg.getAttribute("data-category");
             var saved = sessionStorage.getItem("spotter_folder_" + catId);
-            if (saved === "collapsed") {
-                var header = fg.querySelector(".folder-header");
-                var children = document.getElementById("children-" + catId);
-                if (children && header) {
+            var header = fg.querySelector(".folder-header");
+            var children = document.getElementById("children-" + catId);
+            if (children && header) {
+                if (saved === "expanded") {
+                    children.classList.remove("collapsed");
+                    header.classList.remove("collapsed");
+                    header.setAttribute("aria-expanded", "true");
+                } else {
+                    // Default to collapsed initially
                     children.classList.add("collapsed");
                     header.classList.add("collapsed");
                     header.setAttribute("aria-expanded", "false");

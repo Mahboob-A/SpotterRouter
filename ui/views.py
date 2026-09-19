@@ -3,6 +3,7 @@ import uuid
 from decimal import Decimal
 from typing import Any
 
+from django.conf import settings
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, Min, Q
@@ -255,6 +256,12 @@ class TripDetailView(View):
             "dest_lng": dest_lng,
             "total_gallons_purchased": total_gallons_purchased,
             "initial_fuel_gallons": initial_fuel_gallons,
+            "map_tile_url": getattr(settings, "MAP_TILE_URL", ""),
+            "map_tile_attribution": getattr(settings, "MAP_TILE_ATTRIBUTION", ""),
+            "map_tile_subdomains": getattr(settings, "MAP_TILE_SUBDOMAINS", ""),
+            "map_tile_size": getattr(settings, "MAP_TILE_SIZE", 512),
+            "map_tile_zoom_offset": getattr(settings, "MAP_TILE_ZOOM_OFFSET", -1),
+            "map_tile_max_zoom": getattr(settings, "MAP_TILE_MAX_ZOOM", 19),
         }
         return render(request, "ui/trip_detail.html", context)
 

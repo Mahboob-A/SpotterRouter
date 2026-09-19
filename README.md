@@ -76,6 +76,21 @@ Once started, access:
 - **Interactive UI**: [http://localhost:8000/](http://localhost:8000/)
 - **API Health Check**: [http://localhost:8000/api/health/](http://localhost:8000/api/health/)
 
+### Map Tile Provider (MapTiler Cloud)
+
+Interactive maps on the Trip Detail page use MapTiler Cloud Streets v2 raster tiles with high-DPI 512px resolution.
+To configure your free MapTiler API key:
+1. Sign up for free at [cloud.maptiler.com](https://cloud.maptiler.com/) (100,000 requests/month free).
+2. Add your key to `.env.dev` (or `.env.prod`):
+   ```bash
+   MAPTILER_API_KEY=your_maptiler_api_key_here
+   ```
+3. Restart backend:
+   ```bash
+   make restart-backend
+   ```
+If `MAPTILER_API_KEY` is omitted, the application gracefully falls back to CARTO Voyager basemaps.
+
 ---
 
 ## 4. REST API Reference

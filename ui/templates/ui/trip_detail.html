@@ -255,11 +255,26 @@
         // Initialize map centered at origin
         const map = L.map('map');
 
-        // OpenStreetMap tile layer
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+        // Map tile layer (MapTiler Cloud / Configurable Provider)
+        const tileUrl = "{{ map_tile_url|escapejs }}";
+        const tileAttribution = '{{ map_tile_attribution|safe }}';
+        const tileSubdomains = "{{ map_tile_subdomains|escapejs }}";
+        const tileSize = {{ map_tile_size }};
+        const zoomOffset = {{ map_tile_zoom_offset }};
+        const maxZoom = {{ map_tile_max_zoom }};
+
+        const tileOptions = {
+            attribution: tileAttribution,
+            tileSize: tileSize,
+            zoomOffset: zoomOffset,
+            maxZoom: maxZoom,
+            crossOrigin: true
+        };
+        if (tileSubdomains) {
+            tileOptions.subdomains = tileSubdomains;
+        }
+
+        L.tileLayer(tileUrl, tileOptions).addTo(map);
 
         let boundsGroup = L.featureGroup().addTo(map);
 

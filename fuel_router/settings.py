@@ -105,6 +105,56 @@ FIREWORKS_LLM_MODEL_NAME = os.environ.get(
     "accounts/fireworks/models/deepseek-v4p1-flash",
 )
 
+# --- Interactive Map Tile Provider (MapTiler Cloud) ---
+MAPTILER_API_KEY = os.environ.get("MAPTILER_API_KEY", "").strip()
+
+_maptiler_streets_url = (
+    "https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png"
+    f"?key={MAPTILER_API_KEY}"
+)
+_default_tile_url = (
+    _maptiler_streets_url
+    if MAPTILER_API_KEY
+    else "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+)
+_default_attribution = (
+    '<a href="https://www.maptiler.com/copyright/" target="_blank">'
+    "&copy; MapTiler</a> "
+    '<a href="https://www.openstreetmap.org/copyright" target="_blank">'
+    "&copy; OpenStreetMap contributors</a>"
+    if MAPTILER_API_KEY
+    else (
+        '&copy; <a href="https://www.openstreetmap.org/copyright">'
+        "OpenStreetMap</a> contributors "
+        '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+    )
+)
+
+
+def _int_env(key: str, default: int) -> int:
+    val = os.environ.get(key, "").strip()
+    if not val:
+        return default
+    try:
+        return int(val)
+    except ValueError:
+        return default
+
+
+MAP_TILE_URL = os.environ.get("MAP_TILE_URL", "").strip() or _default_tile_url
+MAP_TILE_ATTRIBUTION = (
+    os.environ.get("MAP_TILE_ATTRIBUTION", "").strip() or _default_attribution
+)
+MAP_TILE_SUBDOMAINS = (
+    os.environ.get("MAP_TILE_SUBDOMAINS", "").strip()
+    or ("" if MAPTILER_API_KEY else "abcd")
+)
+MAP_TILE_SIZE = _int_env("MAP_TILE_SIZE", 512 if MAPTILER_API_KEY else 256)
+MAP_TILE_ZOOM_OFFSET = _int_env(
+    "MAP_TILE_ZOOM_OFFSET", -1 if MAPTILER_API_KEY else 0
+)
+MAP_TILE_MAX_ZOOM = _int_env("MAP_TILE_MAX_ZOOM", 19)
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

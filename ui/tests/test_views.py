@@ -563,3 +563,18 @@ def test_trip_pdf_view_not_found(client: Client, db: None) -> None:
 
     assert response.status_code == 404
 
+
+def test_trip_detail_view_renders_map_tile_config(
+    client: Client, sample_trip_plan: TripPlan
+) -> None:
+    url = reverse("trip-detail", kwargs={"trip_id": sample_trip_plan.id})
+    response = client.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "tileOptions" in content
+    assert "crossOrigin: true" in content
+    assert "tileSize:" in content
+    assert "zoomOffset:" in content
+
+

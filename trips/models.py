@@ -14,6 +14,13 @@ class TripPlan(models.Model):
     total_gallons = models.DecimalField(max_digits=8, decimal_places=3)
     total_cost = models.DecimalField(max_digits=10, decimal_places=2)
     cache_key = models.CharField(max_length=64, unique=True, db_index=True)
+    pricing_dataset = models.ForeignKey(
+        "stations.PricingDataset",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="trip_plans",
+    )
     ai_explanation = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

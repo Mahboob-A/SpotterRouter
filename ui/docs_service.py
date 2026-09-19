@@ -37,7 +37,7 @@ class DocDetail:
 DOCS_CATALOG_DATA: list[dict[str, Any]] = [
     {
         "id": "01-Architecture",
-        "title": "01 System Architecture",
+        "title": "01 System architecture",
         "docs": [
             {
                 "slug": (
@@ -74,7 +74,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
     },
     {
         "id": "02-Current-system",
-        "title": "02 Current Implemented System",
+        "title": "02 Current implemented system",
         "docs": [
             {
                 "slug": "02-Current-system/postgis-spatial-corridor-matching",
@@ -118,7 +118,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
     },
     {
         "id": "03-Tradeoffs",
-        "title": "03 Design Decisions and Tradeoffs",
+        "title": "03 Design decisions and tradeoffs",
         "docs": [
             {
                 "slug": "03-Tradeoffs/local-filesystem-vs-cloud-s3",
@@ -153,7 +153,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
     },
     {
         "id": "04-Infra",
-        "title": "04 Infrastructure Architecture",
+        "title": "04 Infrastructure architecture",
         "docs": [
             {
                 "slug": (
@@ -199,7 +199,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
     },
     {
         "id": "05-Deployments",
-        "title": "05 Production Deployments",
+        "title": "05 Production deployments",
         "docs": [
             {
                 "slug": (
@@ -238,7 +238,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
     },
     {
         "id": "06-Brainstorming-and-failed-paths",
-        "title": "06 Brainstorming and Failed Paths",
+        "title": "06 Brainstorming and failed paths",
         "docs": [
             {
                 "slug": (
@@ -266,7 +266,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
     },
     {
         "id": "07-Learning-journey",
-        "title": "07 What I Learned",
+        "title": "07 What I learned",
         "docs": [
             {
                 "slug": (
@@ -307,7 +307,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
     },
     {
         "id": "08-Preparation-and-testing",
-        "title": "08 Preparation and Engineering Standards",
+        "title": "08 Preparation and engineering standards",
         "docs": [
             {
                 "slug": "08-Preparation-and-testing/how-i-prepared-and-planned",
@@ -325,7 +325,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
                 "title": "Testing Strategy and Quality Checks",
                 "filename": "testing-strategy-and-quality-checks.md",
                 "summary": (
-                    "Overview of 186 unit and integration tests, strict Mypy types, "
+                    "Overview of 228 unit and integration tests, strict Mypy types, "
                     "Ruff linting, and Docker container parity."
                 ),
             },

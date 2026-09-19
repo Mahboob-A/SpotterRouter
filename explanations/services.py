@@ -110,22 +110,27 @@ class ExplanationService:
         if not stops:
             return (
                 f"The total journey distance of {trip_plan.total_distance_miles} miles "
-                f"is within the commercial vehicle's 500-mile operating range on a full "
-                f"departure tank. No en-route refueling stops are required to reach the destination."
+                "is within the commercial vehicle's 500-mile operating range on a "
+                "full departure tank. No en-route refueling stops are required to "
+                "reach the destination."
             )
 
         cheapest = min(stops, key=lambda s: s.price_per_gallon)
         station = getattr(cheapest, "station", None)
-        st_name = getattr(station, "name", "fuel station") if station else "fuel station"
+        st_name = (
+            getattr(station, "name", "fuel station") if station else "fuel station"
+        )
         city = getattr(station, "city", "") if station else ""
         state = getattr(station, "state", "") if station else ""
         loc_str = f"{city}, {state}".strip(", ")
         loc_display = f" in {loc_str}" if loc_str else ""
 
         return (
-            f"Route optimization scheduled {len(stops)} fuel stop(s) over {trip_plan.total_distance_miles} miles "
-            f"to respect the vehicle's 500-mile range constraint while minimizing fuel expenditure. "
-            f"Stops prioritize low-cost corridor pricing, led by {st_name}{loc_display} "
-            f"at ${cheapest.price_per_gallon}/gal, keeping total refuel cost to ${trip_plan.total_cost}."
+            f"Route optimization scheduled {len(stops)} fuel stop(s) over "
+            f"{trip_plan.total_distance_miles} miles to respect the vehicle's "
+            "500-mile range constraint while minimizing fuel expenditure. "
+            "Stops prioritize low-cost corridor pricing, led by "
+            f"{st_name}{loc_display} at ${cheapest.price_per_gallon}/gal, "
+            f"keeping total refuel cost to ${trip_plan.total_cost}."
         )
 

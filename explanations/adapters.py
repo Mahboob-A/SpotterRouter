@@ -134,7 +134,7 @@ class FireworksLLMClient(LLMClient):
                 raise LLMServiceError("Malformed response: invalid message element")
             content = message.get("content")
             if not content or not isinstance(content, str) or not content.strip():
-                # Defensive check: if content is empty but reasoning_content exists, use reasoning_content
+                # Defensive check: if content is empty, check reasoning_content
                 reasoning = message.get("reasoning_content")
                 if isinstance(reasoning, str) and reasoning.strip():
                     content = reasoning.strip()

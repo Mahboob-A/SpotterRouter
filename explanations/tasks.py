@@ -86,7 +86,8 @@ def generate_trip_explanation(
             return
         except Exception as llm_err:
             logger.warning(
-                "LLM explanation generation failed for trip %s (%s); applying fallback",
+                "LLM explanation generation failed for trip %s (%s); "
+                "applying fallback",
                 trip_id,
                 llm_err,
             )
@@ -94,7 +95,8 @@ def generate_trip_explanation(
 
         if not explanation or not explanation.strip():
             logger.warning(
-                "ExplanationService returned empty explanation for trip %s; applying fallback",
+                "ExplanationService returned empty explanation for trip %s; "
+                "applying fallback",
                 trip_id,
             )
             explanation = service.build_fallback_explanation(trip_plan)

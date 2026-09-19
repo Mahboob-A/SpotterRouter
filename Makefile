@@ -12,6 +12,7 @@ COMPOSE_PROD := docker compose $(DOCKER_COMPOSE_BASE) -f docker-compose.prod.yml
 
 STATIONS_CSV ?= fuel-prices-for-be-assessment.csv
 LOAD_STATIONS_FLAGS ?=
+TEST_ARGS ?=
 
 .PHONY: help setup-env up down build logs \
         dev-up dev-down dev-build dev-logs \
@@ -30,7 +31,7 @@ help:
 	@echo "  make logs          - Follow development backend logs"
 	@echo "  make migrate       - Run database migrations in development"
 	@echo "  make load-data     - Import, deduplicate, and geocode station dataset"
-	@echo "  make test          - Run test suite inside backend container"
+	@echo "  make test          - Run test suite inside backend container (optional: TEST_ARGS='...')"
 	@echo "  make lint          - Run ruff and mypy linters inside backend container"
 	@echo "  make shell         - Open interactive Django shell inside backend container"
 	@echo "  make prod-build    - Build production multi-stage images"
@@ -85,7 +86,7 @@ load-data:
 	$(COMPOSE_DEV) exec -T backend python manage.py geocode_stations
 
 test:
-	$(COMPOSE_DEV) exec -T backend pytest
+	$(COMPOSE_DEV) exec -T backend pytest $(TEST_ARGS)
 
 lint:
 	$(COMPOSE_DEV) exec -T backend ruff check .

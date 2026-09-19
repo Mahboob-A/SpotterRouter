@@ -185,15 +185,18 @@ It contains pre-built requests for:
 ## 7. Testing & Quality Assurance
 
 ```bash
-# Run 145 unit and integration tests (100% offline, zero network dependencies)
+# Run 146 unit and integration tests (100% offline, zero network dependencies)
 make test
+
+# Run tests for a specific app or test file
+make test TEST_ARGS=trips/tests/
 
 # Run code style formatting (Ruff) and strict type checking (Mypy)
 make lint
 ```
 
-- **Test Suite**: 145 automated tests running in ~2.2 seconds.
-- **Static Typing**: Strict Mypy type validation across 82 Python source files with 0 errors.
+- **Test Suite**: 146 automated tests running in ~2.4 seconds.
+- **Static Typing**: Strict Mypy type validation across 88 Python source files with 0 errors.
 - **Linting**: Ruff checking with 0 warnings or errors.
 
 ---
@@ -208,6 +211,6 @@ make lint
 | `make logs` | Stream logs from the Django web service |
 | `make migrate` | Execute Django database migrations |
 | `make load-data` | Run raw import, deduplication, and geocoding pipeline |
-| `make test` | Run complete pytest test suite |
+| `make test` | Run complete pytest test suite (supports `TEST_ARGS="..."`) |
 | `make lint` | Run Ruff linter and Mypy strict type checker |
 | `make shell` | Launch interactive Django shell inside web container |

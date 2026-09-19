@@ -6,6 +6,7 @@ from ui.views import (
     LocationsView,
     RecentTripsApiView,
     TripDetailView,
+    TripPdfView,
 )
 
 urlpatterns = [
@@ -14,6 +15,11 @@ urlpatterns = [
         "trips/<uuid:trip_id>/",
         TripDetailView.as_view(),
         name="trip-detail",
+    ),
+    path(
+        "trips/<uuid:trip_id>/pdf/",
+        TripPdfView.as_view(),
+        name="trip-pdf",
     ),
     path(
         "recent-trips/",

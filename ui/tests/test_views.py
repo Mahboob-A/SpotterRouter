@@ -1,3 +1,4 @@
+import uuid
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -509,3 +510,42 @@ def test_trip_detail_view_shows_dataset_version_badge(
     content = response.content.decode()
     assert "Pricing Dataset:" in content
     assert "OPIS-DETAIL-V1" in content
+
+
+def test_trip_pdf_view_inline(
+    client: Client, sample_trip_plan: TripPlan
+) -> None:
+    url = reverse("trip-pdf", kwargs={"trip_id": sample_trip_plan.id})
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/pdf"
+    assert "inline" in response["Content-Disposition"]
+    assert f"SpotterRouter-Trip-{str(sample_trip_plan.id)[:8]}.pdf" in response[
+        "Content-Disposition"
+    ]
+    assert response.content.startswith(b"%PDF-1.")
+
+
+def test_trip_pdf_view_download_attachment(
+    client: Client, sample_trip_plan: TripPlan
+) -> None:
+    url = reverse("trip-pdf", kwargs={"trip_id": sample_trip_plan.id})
+    response = client.get(url, {"download": "1"})
+
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/pdf"
+    assert "attachment" in response["Content-Disposition"]
+    assert f"SpotterRouter-Trip-{str(sample_trip_plan.id)[:8]}.pdf" in response[
+        "Content-Disposition"
+    ]
+    assert response.content.startswith(b"%PDF-1.")
+
+
+def test_trip_pdf_view_not_found(client: Client, db: None) -> None:
+    missing_id = uuid.uuid4()
+    url = reverse("trip-pdf", kwargs={"trip_id": missing_id})
+    response = client.get(url)
+
+    assert response.status_code == 404
+

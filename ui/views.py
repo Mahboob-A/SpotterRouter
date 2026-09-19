@@ -15,6 +15,7 @@ from core.exceptions import FuelRouterError
 from stations.models import Station
 from stations.repositories import PricingDatasetRepository
 from stations.services import DatasetIngestionService
+from trips.reports import TripPdfReportService
 from trips.repositories import TripPlanRepository
 from trips.services import TripPlanningService
 from ui.constants import PRESET_TRIP_PAIRS
@@ -256,6 +257,40 @@ class TripDetailView(View):
             "initial_fuel_gallons": initial_fuel_gallons,
         }
         return render(request, "ui/trip_detail.html", context)
+
+
+class TripPdfView(View):
+    """Generates and streams an executive PDF dispatch report for a trip."""
+
+    def __init__(
+        self,
+        repository: TripPlanRepository | None = None,
+        report_service: TripPdfReportService | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
+        self._repository = repository or TripPlanRepository()
+        self._report_service = report_service or TripPdfReportService()
+
+    def get(self, request: HttpRequest, trip_id: uuid.UUID) -> HttpResponse:
+        trip = self._repository.get_by_id(trip_id)
+        if trip is None:
+            raise Http404("Trip plan does not exist.")
+
+        pdf_bytes = self._report_service.generate_trip_pdf(trip)
+
+        is_download = request.GET.get("download", "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        disposition = "attachment" if is_download else "inline"
+        filename = f"SpotterRouter-Trip-{str(trip.id)[:8]}.pdf"
+
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = f'{disposition}; filename="{filename}"'
+        response["Content-Length"] = str(len(pdf_bytes))
+        return response
 
 
 class DatasetsView(View):

@@ -8,5 +8,6 @@ echo "Starting development backend server with reload on 0.0.0.0:8000..."
 exec gunicorn fuel_router.wsgi:application \
     --bind 0.0.0.0:8000 \
     --reload \
+    --reload-engine poll \
     --access-logfile - \
     --error-logfile -

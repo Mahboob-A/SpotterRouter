@@ -1,10 +1,15 @@
 import uuid
+from collections.abc import Iterable
 from decimal import Decimal
+from typing import Any
 from unittest.mock import patch
 
 import pytest
 from django.contrib.gis.geos import LineString, Point
-from django.test import Client
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.contrib.staticfiles.views import serve as static_serve
+from django.http import StreamingHttpResponse
+from django.test import Client, RequestFactory
 from django.urls import reverse
 
 from core.exceptions import GeocodingUnresolvedError
@@ -600,6 +605,56 @@ def test_base_template_includes_favicon_and_manifest_links(
     assert "/static/favicons/apple-touch-icon.png" in content
     assert "/static/favicons/site.webmanifest" in content
     assert 'content="#063B2A"' in content
+
+
+def test_apple_touch_icon_precomposed_root_redirect(client: Client) -> None:
+    response = client.get("/apple-touch-icon-precomposed.png")
+    assert response.status_code == 301
+    assert response["Location"] == "/static/favicons/apple-touch-icon.png"
+
+
+def test_site_webmanifest_root_redirect(client: Client) -> None:
+    response = client.get("/site.webmanifest")
+    assert response.status_code == 301
+    assert response["Location"] == "/static/favicons/site.webmanifest"
+
+
+def test_manifest_json_root_redirect(client: Client) -> None:
+    response = client.get("/manifest.json")
+    assert response.status_code == 301
+    assert response["Location"] == "/static/favicons/site.webmanifest"
+
+
+def test_favicon_resolution_root_redirect(client: Client) -> None:
+    response = client.get("/favicon-32x32.png")
+    assert response.status_code == 301
+    assert response["Location"] == "/static/favicons/favicon-32x32.png"
+
+    response_192 = client.get("/favicon-192x192.png")
+    assert response_192.status_code == 301
+    assert response_192["Location"] == "/static/favicons/favicon-192x192.png"
+
+
+def test_static_webmanifest_served() -> None:
+    rf = RequestFactory()
+    request = rf.get("/static/favicons/site.webmanifest")
+    response = static_serve(request, "favicons/site.webmanifest", insecure=True)
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/manifest+json"
+    assert isinstance(response, StreamingHttpResponse)
+    assert isinstance(response.streaming_content, Iterable)
+    body = b"".join(response.streaming_content).decode()
+    assert "Spotter Router" in body
+    assert "/static/favicons/favicon-192x192.png" in body
+
+
+def test_staticfiles_urlpatterns_when_debug_enabled(settings: Any) -> None:
+    settings.DEBUG = True
+    patterns = staticfiles_urlpatterns()
+    assert len(patterns) == 1
+    assert "static/" in str(patterns[0].pattern)
+
+
 
 
 

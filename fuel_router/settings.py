@@ -25,7 +25,7 @@ SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 DEBUG = _env_bool("DEBUG", True)
 ALLOWED_HOSTS = _env_list(
     "ALLOWED_HOSTS",
-    "spotterrouter.mahboob.engineer,localhost,127.0.0.1,backend,nginx",
+    "spotterrouter.mahboob.engineer,localhost,127.0.0.1,backend,nginx,testserver",
 )
 
 # Reverse proxy and HTTPS configuration

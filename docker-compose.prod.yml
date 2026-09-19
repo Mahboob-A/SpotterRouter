@@ -73,9 +73,13 @@ services:
       - "80"
     volumes:
       - static_volume:/app/staticfiles:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.services.nginx.loadbalancer.server.port=80"
     networks:
-      - fuel_network
       - dokploy-network
+      - fuel_network
     restart: unless-stopped
     depends_on:
       backend:

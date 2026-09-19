@@ -162,6 +162,12 @@
             background-color: var(--primary-light);
         }
 
+        .nav-links a.active {
+            color: var(--primary);
+            background-color: var(--primary-light);
+            font-weight: 600;
+        }
+
         .theme-toggle-btn {
             display: inline-flex;
             align-items: center;
@@ -394,8 +400,9 @@
                 <span class="brand-subtitle">Intelligent Long-Haul Fuel Optimization</span>
             </div>
             <nav class="nav-links">
-                <a href="{% url 'locations' %}">Locations</a>
-                <a href="{% url 'datasets' %}">Add Dataset</a>
+                <a href="{% url 'locations' %}" class="{% if request.resolver_match.url_name == 'locations' %}active{% endif %}">Locations</a>
+                <a href="{% url 'datasets' %}" class="{% if request.resolver_match.url_name == 'datasets' %}active{% endif %}">Add Dataset</a>
+                <a href="{% url 'docs' %}" class="{% if request.resolver_match.url_name == 'docs' %}active{% endif %}">Docs</a>
                 <button id="theme-toggle" class="theme-toggle-btn" type="button" onclick="toggleTheme()" aria-label="Toggle theme">
                     <svg id="theme-icon-moon" class="theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>

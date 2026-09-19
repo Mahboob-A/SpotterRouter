@@ -2,6 +2,7 @@ from django.urls import path
 
 from ui.views import (
     DatasetsView,
+    DocsView,
     HomeView,
     LocationsView,
     RecentTripsApiView,
@@ -35,5 +36,10 @@ urlpatterns = [
         "datasets/",
         DatasetsView.as_view(),
         name="datasets",
+    ),
+    path(
+        "docs/",
+        DocsView.as_view(),
+        name="docs",
     ),
 ]

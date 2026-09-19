@@ -20,6 +20,7 @@ from trips.reports import TripPdfReportService
 from trips.repositories import TripPlanRepository
 from trips.services import TripPlanningService
 from ui.constants import PRESET_TRIP_PAIRS
+from ui.docs_service import DocsService
 
 
 class HomeView(View):
@@ -399,3 +400,81 @@ class DatasetsView(View):
                 messages.error(request, f"Failed to activate dataset: {exc}")
 
         return redirect("datasets")
+
+
+class DocsView(View):
+    """Presentation view for assessment documentation and VS Code explorer."""
+
+    def __init__(
+        self,
+        service: DocsService | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
+        self._service = service or DocsService()
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        slug = (
+            request.GET.get("doc", "").strip()
+            or self._service.get_default_slug()
+        )
+        format_type = request.GET.get("format", "").strip()
+
+        doc_detail = self._service.get_doc_detail(slug)
+        if not doc_detail:
+            default_slug = self._service.get_default_slug()
+            doc_detail = self._service.get_doc_detail(default_slug)
+            if not doc_detail:
+                raise Http404(f"Documentation not found for slug: {slug}")
+
+        # Support fast client-side async switching with JSON payload
+        is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest"
+        if format_type == "json" or is_ajax:
+            return JsonResponse(
+                {
+                    "slug": doc_detail.metadata.slug,
+                    "title": doc_detail.metadata.title,
+                    "category_id": doc_detail.metadata.category_id,
+                    "category_title": doc_detail.metadata.category_title,
+                    "filename": doc_detail.metadata.filename,
+                    "summary": doc_detail.metadata.summary,
+                    "reading_time_minutes": (
+                        doc_detail.metadata.reading_time_minutes
+                    ),
+                    "html_content": doc_detail.html_content,
+                    "table_of_contents": [
+                        {
+                            "level": t.level,
+                            "title": t.title,
+                            "slug": t.slug,
+                        }
+                        for t in doc_detail.table_of_contents
+                    ],
+                    "previous_doc": (
+                        {
+                            "slug": doc_detail.previous_doc.slug,
+                            "title": doc_detail.previous_doc.title,
+                        }
+                        if doc_detail.previous_doc
+                        else None
+                    ),
+                    "next_doc": (
+                        {
+                            "slug": doc_detail.next_doc.slug,
+                            "title": doc_detail.next_doc.title,
+                        }
+                        if doc_detail.next_doc
+                        else None
+                    ),
+                }
+            )
+
+        categories = self._service.get_categories()
+        context = {
+            "categories": categories,
+            "active_doc": doc_detail,
+            "active_slug": doc_detail.metadata.slug,
+            "active_category_id": doc_detail.metadata.category_id,
+        }
+        return render(request, "ui/docs.html", context)
+

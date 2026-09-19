@@ -1,0 +1,935 @@
+{% extends "ui/base.html" %}
+
+{% block title %}{{ active_doc.metadata.title }} - SpotterRouter Documentation{% endblock %}
+
+{% block content %}
+<div class="docs-workspace">
+    <!-- Left Pane: VS Code Explorer Sidebar -->
+    <aside class="vscode-sidebar" aria-label="Documentation Explorer">
+        <div class="sidebar-header">
+            <div class="sidebar-brand-row">
+                <span class="sidebar-heading">EXPLORER: SPOTTER-DOCS</span>
+                <button type="button" class="sidebar-icon-btn" onclick="toggleAllFolders()" title="Expand or collapse all folders" aria-label="Toggle all folders">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="7 13 12 18 17 13"></polyline>
+                        <polyline points="7 6 12 11 17 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+            <div class="sidebar-search-box">
+                <input type="text" id="docs-search-input" placeholder="Filter documents..." oninput="handleDocsSearch(this.value)" autocomplete="off" aria-label="Filter documents">
+            </div>
+        </div>
+
+        <div class="sidebar-tree" id="docs-tree">
+            {% for cat in categories %}
+            <div class="folder-group" id="folder-group-{{ cat.id }}" data-category="{{ cat.id }}">
+                <div class="folder-header" onclick="toggleFolder('{{ cat.id }}')" role="button" tabindex="0" aria-expanded="true">
+                    <span class="folder-chevron" id="chevron-{{ cat.id }}">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </span>
+                    <span class="folder-icon">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </span>
+                    <span class="folder-title">{{ cat.title }}</span>
+                </div>
+                <div class="folder-children" id="children-{{ cat.id }}">
+                    {% for doc in cat.docs %}
+                    <a href="?doc={{ doc.slug }}" class="file-item {% if active_slug == doc.slug %}active{% endif %}" data-slug="{{ doc.slug }}" data-title="{{ doc.title }}" data-summary="{{ doc.summary }}" onclick="loadDoc(event, '{{ doc.slug }}')">
+                        <span class="file-badge">MD</span>
+                        <span class="file-title">{{ doc.title }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+            <div id="docs-search-empty" class="sidebar-empty" style="display: none;">
+                No matching topics found.
+            </div>
+        </div>
+    </aside>
+
+    <!-- Right Pane: VS Code Editor & Reader -->
+    <section class="vscode-editor" aria-label="Document Reader">
+        <!-- Editor Tab Bar -->
+        <div class="editor-tab-bar">
+            <div class="editor-tab active" id="editor-active-tab">
+                <span class="tab-badge">MD</span>
+                <span class="tab-filename" id="tab-filename">{{ active_doc.metadata.filename }}</span>
+            </div>
+        </div>
+
+        <!-- Breadcrumb Bar -->
+        <div class="editor-breadcrumb-bar">
+            <span class="breadcrumb-root">Docs</span>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-category" id="bc-category">{{ active_doc.metadata.category_title }}</span>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-file" id="bc-file">{{ active_doc.metadata.title }}</span>
+        </div>
+
+        <!-- Article Content -->
+        <article class="doc-container" id="doc-container">
+            <header class="doc-header">
+                <div class="doc-meta-pills">
+                    <span class="doc-pill pill-category" id="pill-category">{{ active_doc.metadata.category_title }}</span>
+                    <span class="doc-pill pill-time" id="pill-time">{{ active_doc.metadata.reading_time_minutes }} min read</span>
+                    <span class="doc-pill pill-format">Markdown</span>
+                </div>
+                <h1 class="doc-title" id="doc-title">{{ active_doc.metadata.title }}</h1>
+                <p class="doc-summary-lead" id="doc-summary">{{ active_doc.metadata.summary }}</p>
+            </header>
+
+            <div class="doc-body" id="doc-body">
+                {{ active_doc.html_content|safe }}
+            </div>
+
+            <!-- Previous and Next Navigation Footer -->
+            <footer class="doc-nav-footer" id="doc-nav-footer">
+                <div class="nav-btn-slot slot-prev">
+                    {% if active_doc.previous_doc %}
+                    <a href="?doc={{ active_doc.previous_doc.slug }}" class="doc-nav-btn" id="btn-prev" onclick="loadDoc(event, '{{ active_doc.previous_doc.slug }}')">
+                        <span class="nav-direction">&larr; Previous Topic</span>
+                        <span class="nav-target-title">{{ active_doc.previous_doc.title }}</span>
+                    </a>
+                    {% else %}
+                    <div id="btn-prev"></div>
+                    {% endif %}
+                </div>
+                <div class="nav-btn-slot slot-next">
+                    {% if active_doc.next_doc %}
+                    <a href="?doc={{ active_doc.next_doc.slug }}" class="doc-nav-btn next" id="btn-next" onclick="loadDoc(event, '{{ active_doc.next_doc.slug }}')">
+                        <span class="nav-direction">Next Topic &rarr;</span>
+                        <span class="nav-target-title">{{ active_doc.next_doc.title }}</span>
+                    </a>
+                    {% else %}
+                    <div id="btn-next"></div>
+                    {% endif %}
+                </div>
+            </footer>
+        </article>
+    </section>
+</div>
+
+<style>
+    /* Docs Workspace Layout */
+    .docs-workspace {
+        display: flex;
+        min-height: calc(100vh - 120px);
+        max-width: 1400px;
+        margin: 0 auto;
+        border: 1px solid var(--border-color);
+        background-color: var(--card-bg);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: var(--shadow-card);
+    }
+
+    /* Left Sidebar: VS Code Explorer */
+    .vscode-sidebar {
+        width: 330px;
+        flex-shrink: 0;
+        background-color: var(--card-subtle);
+        border-right: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        user-select: none;
+    }
+
+    .sidebar-header {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border-color);
+        background-color: var(--card-subtle);
+    }
+
+    .sidebar-brand-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .sidebar-heading {
+        font-size: 0.6875rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+        text-transform: uppercase;
+    }
+
+    .sidebar-icon-btn {
+        background: transparent;
+        border: 1px solid transparent;
+        color: var(--text-muted);
+        border-radius: 4px;
+        padding: 2px 4px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        transition: all 0.15s ease;
+    }
+
+    .sidebar-icon-btn:hover {
+        background-color: var(--border-color);
+        color: var(--text-main);
+    }
+
+    .sidebar-search-box input {
+        width: 100%;
+        background-color: var(--input-bg);
+        border: 1px solid var(--input-border);
+        color: var(--text-main);
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-size: 0.8125rem;
+        outline: none;
+        transition: border-color 0.15s ease;
+    }
+
+    .sidebar-search-box input:focus {
+        border-color: var(--primary);
+    }
+
+    .sidebar-tree {
+        padding: 8px 0;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .folder-group {
+        margin-bottom: 4px;
+    }
+
+    .folder-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        transition: background-color 0.1s ease, color 0.1s ease;
+    }
+
+    .folder-header:hover {
+        background-color: var(--border-subtle);
+        color: var(--text-main);
+    }
+
+    .folder-chevron {
+        display: inline-flex;
+        align-items: center;
+        transition: transform 0.15s ease;
+        color: var(--text-muted);
+    }
+
+    .folder-header.collapsed .folder-chevron {
+        transform: rotate(-90deg);
+    }
+
+    .folder-icon {
+        display: inline-flex;
+        align-items: center;
+        color: var(--text-muted);
+    }
+
+    .folder-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .folder-children {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .folder-children.collapsed {
+        display: none;
+    }
+
+    .file-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px 6px 28px;
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: all 0.12s ease;
+        border-left: 2px solid transparent;
+    }
+
+    .file-item:hover {
+        background-color: var(--border-subtle);
+        color: var(--text-main);
+    }
+
+    .file-item.active {
+        background-color: var(--primary-light);
+        color: var(--primary);
+        font-weight: 600;
+        border-left-color: var(--primary);
+    }
+
+    .file-badge {
+        font-size: 0.625rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        background-color: var(--border-color);
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-family: monospace;
+    }
+
+    .file-item.active .file-badge {
+        background-color: var(--primary);
+        color: #ffffff;
+    }
+
+    .file-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .sidebar-empty {
+        padding: 20px 14px;
+        text-align: center;
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        font-style: italic;
+    }
+
+    /* Right Editor & Reader */
+    .vscode-editor {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        background-color: var(--card-bg);
+    }
+
+    .editor-tab-bar {
+        display: flex;
+        align-items: center;
+        background-color: var(--card-subtle);
+        border-bottom: 1px solid var(--border-color);
+        padding-left: 8px;
+        height: 38px;
+    }
+
+    .editor-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 14px;
+        height: 100%;
+        background-color: var(--card-bg);
+        border-top: 2px solid var(--primary);
+        border-right: 1px solid var(--border-color);
+        border-left: 1px solid var(--border-color);
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--text-main);
+        user-select: none;
+    }
+
+    .tab-badge {
+        font-size: 0.625rem;
+        font-weight: 700;
+        color: var(--primary);
+        font-family: monospace;
+    }
+
+    .editor-breadcrumb-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 24px;
+        background-color: var(--card-bg);
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .breadcrumb-separator {
+        opacity: 0.5;
+    }
+
+    .breadcrumb-file {
+        color: var(--text-main);
+        font-weight: 500;
+    }
+
+    /* Article Reader Area */
+    .doc-container {
+        padding: 32px 40px;
+        max-width: 920px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .doc-header {
+        margin-bottom: 28px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 20px;
+    }
+
+    .doc-meta-pills {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .doc-pill {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background-color: var(--btn-secondary-bg);
+        color: var(--text-muted);
+        border: 1px solid var(--border-color);
+    }
+
+    .pill-category {
+        background-color: var(--primary-light);
+        color: var(--primary);
+        border-color: transparent;
+    }
+
+    .doc-title {
+        font-size: 1.875rem;
+        font-weight: 800;
+        color: var(--text-main);
+        letter-spacing: -0.025em;
+        line-height: 1.25;
+        margin-bottom: 10px;
+    }
+
+    .doc-summary-lead {
+        font-size: 1rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+    }
+
+    /* Parsed Markdown Elements */
+    .doc-body {
+        font-size: 0.95rem;
+        line-height: 1.7;
+        color: var(--text-main);
+    }
+
+    .doc-heading {
+        color: var(--text-main);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-top: 32px;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        position: relative;
+    }
+
+    .doc-heading-1 {
+        font-size: 1.5rem;
+        border-bottom: 1px solid var(--border-subtle);
+        padding-bottom: 6px;
+    }
+
+    .doc-heading-2 {
+        font-size: 1.25rem;
+        border-bottom: 1px solid var(--border-subtle);
+        padding-bottom: 4px;
+    }
+
+    .doc-heading-3 {
+        font-size: 1.0625rem;
+    }
+
+    .doc-heading-anchor {
+        text-decoration: none;
+        color: var(--text-muted);
+        opacity: 0.3;
+        font-size: 0.85em;
+        transition: opacity 0.15s ease;
+    }
+
+    .doc-heading:hover .doc-heading-anchor {
+        opacity: 1;
+        color: var(--primary);
+    }
+
+    .doc-paragraph {
+        margin-bottom: 16px;
+    }
+
+    .doc-list {
+        margin-bottom: 16px;
+        padding-left: 24px;
+    }
+
+    .doc-list li {
+        margin-bottom: 6px;
+    }
+
+    .doc-link {
+        color: var(--primary);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
+    .doc-divider {
+        border: none;
+        border-top: 1px solid var(--border-color);
+        margin: 28px 0;
+    }
+
+    /* Callout Boxes */
+    .doc-callout {
+        border-left: 4px solid var(--primary);
+        background-color: var(--primary-light);
+        padding: 14px 18px;
+        border-radius: 0 6px 6px 0;
+        margin-bottom: 20px;
+    }
+
+    .doc-callout-header {
+        margin-bottom: 6px;
+    }
+
+    .doc-callout-badge {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--primary);
+    }
+
+    .doc-callout-body {
+        font-size: 0.9rem;
+        line-height: 1.55;
+    }
+
+    .doc-callout-important, .doc-callout-warning, .doc-callout-caution {
+        border-left-color: var(--accent-amber);
+        background-color: rgba(217, 119, 6, 0.08);
+    }
+
+    .doc-callout-important .doc-callout-badge,
+    .doc-callout-warning .doc-callout-badge {
+        color: var(--accent-amber);
+    }
+
+    /* Code Blocks */
+    .doc-code-block {
+        margin-bottom: 20px;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        background-color: var(--card-subtle);
+    }
+
+    .doc-code-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 12px;
+        background-color: var(--table-header-bg);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .doc-code-lang {
+        font-size: 0.6875rem;
+        font-weight: 700;
+        font-family: monospace;
+        color: var(--text-muted);
+        text-transform: uppercase;
+    }
+
+    .doc-copy-btn {
+        background-color: var(--btn-secondary-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-muted);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .doc-copy-btn:hover {
+        color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .doc-code-block pre {
+        padding: 14px 16px;
+        overflow-x: auto;
+        font-size: 0.84rem;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+        line-height: 1.5;
+    }
+
+    code {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+        font-size: 0.875em;
+        padding: 2px 5px;
+        border-radius: 4px;
+        background-color: var(--btn-secondary-bg);
+        border: 1px solid var(--border-subtle);
+    }
+
+    .doc-code-block code {
+        border: none;
+        padding: 0;
+        background: transparent;
+    }
+
+    /* Tables */
+    .doc-table-wrapper {
+        overflow-x: auto;
+        margin-bottom: 20px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+    }
+
+    .doc-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+
+    .doc-table th {
+        background-color: var(--table-header-bg);
+        padding: 10px 14px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-main);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .doc-table td {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .doc-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .doc-table tr:hover td {
+        background-color: var(--table-hover-bg);
+    }
+
+    /* Navigation Footer */
+    .doc-nav-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 48px;
+        padding-top: 24px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .nav-btn-slot {
+        flex: 1;
+    }
+
+    .slot-next {
+        text-align: right;
+    }
+
+    .doc-nav-btn {
+        display: inline-flex;
+        flex-direction: column;
+        padding: 12px 18px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        text-decoration: none;
+        background-color: var(--card-subtle);
+        transition: all 0.15s ease;
+        max-width: 380px;
+        width: 100%;
+    }
+
+    .doc-nav-btn:hover {
+        border-color: var(--primary);
+        background-color: var(--primary-light);
+    }
+
+    .nav-direction {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+    }
+
+    .nav-target-title {
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .doc-nav-btn:hover .nav-target-title {
+        color: var(--primary);
+    }
+
+    /* Responsive */
+    @media (max-width: 860px) {
+        .docs-workspace {
+            flex-direction: column;
+        }
+
+        .vscode-sidebar {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid var(--border-color);
+            max-height: 280px;
+        }
+
+        .doc-container {
+            padding: 20px 16px;
+        }
+
+        .doc-nav-footer {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<script>
+    function toggleFolder(catId) {
+        var group = document.getElementById("folder-group-" + catId);
+        if (!group) return;
+        var header = group.querySelector(".folder-header");
+        var children = document.getElementById("children-" + catId);
+        if (!children || !header) return;
+
+        var isCollapsed = children.classList.contains("collapsed");
+        if (isCollapsed) {
+            children.classList.remove("collapsed");
+            header.classList.remove("collapsed");
+            header.setAttribute("aria-expanded", "true");
+            sessionStorage.setItem("spotter_folder_" + catId, "expanded");
+        } else {
+            children.classList.add("collapsed");
+            header.classList.add("collapsed");
+            header.setAttribute("aria-expanded", "false");
+            sessionStorage.setItem("spotter_folder_" + catId, "collapsed");
+        }
+    }
+
+    function toggleAllFolders() {
+        var groups = document.querySelectorAll(".folder-group");
+        var anyOpen = false;
+        groups.forEach(function(g) {
+            var c = g.querySelector(".folder-children");
+            if (c && !c.classList.contains("collapsed")) anyOpen = true;
+        });
+
+        groups.forEach(function(g) {
+            var catId = g.getAttribute("data-category");
+            var header = g.querySelector(".folder-header");
+            var children = document.getElementById("children-" + catId);
+            if (anyOpen) {
+                children.classList.add("collapsed");
+                header.classList.add("collapsed");
+                header.setAttribute("aria-expanded", "false");
+                sessionStorage.setItem("spotter_folder_" + catId, "collapsed");
+            } else {
+                children.classList.remove("collapsed");
+                header.classList.remove("collapsed");
+                header.setAttribute("aria-expanded", "true");
+                sessionStorage.setItem("spotter_folder_" + catId, "expanded");
+            }
+        });
+    }
+
+    function handleDocsSearch(val) {
+        var query = (val || "").trim().toLowerCase();
+        var fileItems = document.querySelectorAll(".file-item");
+        var folderGroups = document.querySelectorAll(".folder-group");
+        var matches = 0;
+
+        folderGroups.forEach(function(fg) {
+            var catId = fg.getAttribute("data-category");
+            var children = document.getElementById("children-" + catId);
+            var header = fg.querySelector(".folder-header");
+            var groupMatches = 0;
+
+            var items = fg.querySelectorAll(".file-item");
+            items.forEach(function(item) {
+                var title = (item.getAttribute("data-title") || "").toLowerCase();
+                var summary = (item.getAttribute("data-summary") || "").toLowerCase();
+                var slug = (item.getAttribute("data-slug") || "").toLowerCase();
+
+                if (!query || title.indexOf(query) !== -1 || summary.indexOf(query) !== -1 || slug.indexOf(query) !== -1) {
+                    item.style.display = "flex";
+                    groupMatches++;
+                    matches++;
+                } else {
+                    item.style.display = "none";
+                }
+            });
+
+            if (query && groupMatches > 0) {
+                fg.style.display = "block";
+                children.classList.remove("collapsed");
+                header.classList.remove("collapsed");
+                header.setAttribute("aria-expanded", "true");
+            } else if (query && groupMatches === 0) {
+                fg.style.display = "none";
+            } else {
+                fg.style.display = "block";
+                var saved = sessionStorage.getItem("spotter_folder_" + catId);
+                if (saved === "collapsed") {
+                    children.classList.add("collapsed");
+                    header.classList.add("collapsed");
+                }
+            }
+        });
+
+        var emptyBox = document.getElementById("docs-search-empty");
+        if (emptyBox) {
+            emptyBox.style.display = (query && matches === 0) ? "block" : "none";
+        }
+    }
+
+    function loadDoc(event, slug) {
+        if (event && event.preventDefault) {
+            event.preventDefault();
+        }
+
+        var url = "?doc=" + encodeURIComponent(slug) + "&format=json";
+
+        fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+            .then(function(res) {
+                if (!res.ok) throw new Error("Document load failed");
+                return res.json();
+            })
+            .then(function(data) {
+                // Update active sidebar file
+                document.querySelectorAll(".file-item").forEach(function(item) {
+                    item.classList.remove("active");
+                    if (item.getAttribute("data-slug") === slug) {
+                        item.classList.add("active");
+                    }
+                });
+
+                // Update tab and breadcrumbs
+                document.getElementById("tab-filename").textContent = data.filename;
+                document.getElementById("bc-category").textContent = data.category_title;
+                document.getElementById("bc-file").textContent = data.title;
+
+                // Update article metadata
+                document.getElementById("pill-category").textContent = data.category_title;
+                document.getElementById("pill-time").textContent = data.reading_time_minutes + " min read";
+                document.getElementById("doc-title").textContent = data.title;
+                document.getElementById("doc-summary").textContent = data.summary;
+
+                // Update body content
+                document.getElementById("doc-body").innerHTML = data.html_content;
+
+                // Update document page title
+                document.title = data.title + " - SpotterRouter Documentation";
+
+                // Update footer navigation
+                var prevSlot = document.querySelector(".slot-prev");
+                var nextSlot = document.querySelector(".slot-next");
+
+                if (data.previous_doc) {
+                    prevSlot.innerHTML = '<a href="?doc=' + encodeURIComponent(data.previous_doc.slug) + '" class="doc-nav-btn" onclick="loadDoc(event, \'' + data.previous_doc.slug + '\')">' +
+                        '<span class="nav-direction">&larr; Previous Topic</span>' +
+                        '<span class="nav-target-title">' + escapeHtml(data.previous_doc.title) + '</span></a>';
+                } else {
+                    prevSlot.innerHTML = '<div id="btn-prev"></div>';
+                }
+
+                if (data.next_doc) {
+                    nextSlot.innerHTML = '<a href="?doc=' + encodeURIComponent(data.next_doc.slug) + '" class="doc-nav-btn next" onclick="loadDoc(event, \'' + data.next_doc.slug + '\')">' +
+                        '<span class="nav-direction">Next Topic &rarr;</span>' +
+                        '<span class="nav-target-title">' + escapeHtml(data.next_doc.title) + '</span></a>';
+                } else {
+                    nextSlot.innerHTML = '<div id="btn-next"></div>';
+                }
+
+                // Update browser URL without reload
+                window.history.pushState({ doc: slug }, data.title, "?doc=" + encodeURIComponent(slug));
+
+                // Scroll reader to top
+                var container = document.getElementById("doc-container");
+                if (container) container.scrollTop = 0;
+            })
+            .catch(function(err) {
+                console.error(err);
+                // Fallback to normal navigation
+                window.location.href = "?doc=" + encodeURIComponent(slug);
+            });
+    }
+
+    function escapeHtml(text) {
+        var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+
+    function copyDocCode(btn) {
+        var block = btn.closest(".doc-code-block");
+        if (!block) return;
+        var code = block.querySelector("code");
+        if (!code) return;
+
+        var text = code.innerText || code.textContent;
+        navigator.clipboard.writeText(text).then(function() {
+            var orig = btn.textContent;
+            btn.textContent = "Copied!";
+            btn.style.color = "var(--success-text)";
+            setTimeout(function() {
+                btn.textContent = orig;
+                btn.style.color = "";
+            }, 2000);
+        }).catch(function(err) {
+            console.error("Clipboard copy failed:", err);
+        });
+    }
+
+    // Handle browser back/forward buttons
+    window.addEventListener("popstate", function(e) {
+        var params = new URLSearchParams(window.location.search);
+        var doc = params.get("doc");
+        if (doc) {
+            loadDoc(null, doc);
+        }
+    });
+
+    // Restore saved folder states on page load
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll(".folder-group").forEach(function(fg) {
+            var catId = fg.getAttribute("data-category");
+            var saved = sessionStorage.getItem("spotter_folder_" + catId);
+            if (saved === "collapsed") {
+                var header = fg.querySelector(".folder-header");
+                var children = document.getElementById("children-" + catId);
+                if (children && header) {
+                    children.classList.add("collapsed");
+                    header.classList.add("collapsed");
+                    header.setAttribute("aria-expanded", "false");
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

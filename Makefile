@@ -8,7 +8,7 @@ ENV_DEV_FLAG := $(if $(wildcard .env.dev),--env-file .env.dev,)
 ENV_PROD_FLAG := $(if $(wildcard .env.prod),--env-file .env.prod,)
 
 COMPOSE_DEV := docker compose $(DOCKER_COMPOSE_BASE) -f docker-compose.dev.yml $(ENV_DEV_FLAG)
-COMPOSE_PROD := docker compose $(DOCKER_COMPOSE_BASE) -f docker-compose.prod.yml $(ENV_PROD_FLAG)
+COMPOSE_PROD := docker compose -f docker-compose.prod.yml $(ENV_PROD_FLAG)
 
 STATIONS_CSV ?= dataset/fuel-prices-for-be-assessment.csv
 LOAD_STATIONS_FLAGS ?=
@@ -46,6 +46,7 @@ help:
 # Environment Initialization
 # -----------------------------------------------------------------------------
 setup-env:
+	@docker network create dokploy-network >/dev/null 2>&1 || true
 	@if [ ! -f .env.dev ]; then \
 		cp .env.example .env.dev; \
 		echo "Initialized .env.dev from .env.example"; \
@@ -108,7 +109,7 @@ shell:
 prod-build:
 	$(COMPOSE_PROD) build
 
-prod-up:
+prod-up: setup-env
 	$(COMPOSE_PROD) up -d
 
 prod-down:

@@ -73,15 +73,16 @@ class HomeView(View):
 
         force_refresh = request.POST.get("force_refresh") in ("1", "true", "True", "on")
         try:
-            if force_refresh:
-                plan = self._service.plan_trip(
-                    start_input=start,
-                    end_input=end,
-                    force_refresh=True,
-                )
-            else:
-                plan = self._service.plan_trip(start_input=start, end_input=end)
-            return redirect("trip-detail", trip_id=plan.id)
+            plan = self._service.plan_trip(
+                start_input=start,
+                end_input=end,
+                force_refresh=force_refresh,
+            )
+            cache_status = "HIT" if plan.is_cache_hit else "MISS"
+            request.session[f"trip_cache_{plan.id}"] = cache_status
+            response = redirect("trip-detail", trip_id=plan.id)
+            response["X-Cache"] = cache_status
+            return response
         except FuelRouterError as exc:
             context = {
                 "recent_trips": recent_trips,
@@ -256,6 +257,7 @@ class TripDetailView(View):
         )
         initial_fuel_gallons = getattr(trip, "initial_fuel_gallons", Decimal("50.000"))
 
+        cache_status = request.session.pop(f"trip_cache_{trip.id}", None)
         context = {
             "trip": trip,
             "route_geojson": route_geojson,
@@ -267,6 +269,7 @@ class TripDetailView(View):
             "dest_lng": dest_lng,
             "total_gallons_purchased": total_gallons_purchased,
             "initial_fuel_gallons": initial_fuel_gallons,
+            "cache_status": cache_status,
             "map_tile_url": getattr(settings, "MAP_TILE_URL", ""),
             "map_tile_attribution": getattr(settings, "MAP_TILE_ATTRIBUTION", ""),
             "map_tile_subdomains": getattr(settings, "MAP_TILE_SUBDOMAINS", ""),
@@ -274,7 +277,10 @@ class TripDetailView(View):
             "map_tile_zoom_offset": getattr(settings, "MAP_TILE_ZOOM_OFFSET", -1),
             "map_tile_max_zoom": getattr(settings, "MAP_TILE_MAX_ZOOM", 19),
         }
-        return render(request, "ui/trip_detail.html", context)
+        response = render(request, "ui/trip_detail.html", context)
+        if cache_status:
+            response["X-Cache"] = cache_status
+        return response
 
 
 class TripPdfView(View):

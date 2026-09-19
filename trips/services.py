@@ -111,6 +111,7 @@ class TripPlanningService:
             cached_plan = self._cache_manager.get(cache_key)
             if cached_plan is not None:
                 self._trips.touch_recency(cached_plan.id)
+                cached_plan.is_cache_hit = True
                 return cached_plan
 
         start_coords = self._geocoding.resolve(start_input)
@@ -169,6 +170,7 @@ class TripPlanningService:
                     if persisted_plan is not None:
                         self._cache_manager.set(persisted_plan)
                         self._trips.touch_recency(persisted_plan.id)
+                        persisted_plan.is_cache_hit = False
                         return persisted_plan
                     raise
 
@@ -188,6 +190,7 @@ class TripPlanningService:
                 self._fuel_stops.save_many(fuel_stops)
 
         persisted_plan = self._trips.get_by_id(saved_plan.id) or saved_plan
+        persisted_plan.is_cache_hit = False
         self._cache_manager.set(persisted_plan)
 
         try:

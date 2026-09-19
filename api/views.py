@@ -43,19 +43,15 @@ class TripPlanView(APIView):  # type: ignore[misc]
         serializer = TripPlanRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         force_refresh = serializer.validated_data.get("force_refresh", False)
-        if force_refresh:
-            plan = self._service.plan_trip(
-                start_input=serializer.validated_data["start"],
-                end_input=serializer.validated_data["end"],
-                force_refresh=True,
-            )
-        else:
-            plan = self._service.plan_trip(
-                start_input=serializer.validated_data["start"],
-                end_input=serializer.validated_data["end"],
-            )
+        plan = self._service.plan_trip(
+            start_input=serializer.validated_data["start"],
+            end_input=serializer.validated_data["end"],
+            force_refresh=force_refresh,
+        )
         response_serializer = TripPlanResponseSerializer(plan)
-        return Response(response_serializer.data, status=status.HTTP_200_OK)
+        response = Response(response_serializer.data, status=status.HTTP_200_OK)
+        response["X-Cache"] = "HIT" if plan.is_cache_hit else "MISS"
+        return response
 
     def get(self, request: Request) -> Response:
         trips = self._repository.list_recent(limit=50)

@@ -48,6 +48,15 @@ class TripPlan(models.Model):
         """Vehicle tank capacity pre-loaded at origin (500-mi range at 10 MPG)."""
         return Decimal(str(MAX_RANGE_MILES)) / MPG_CONSTANT
 
+    @property
+    def is_cache_hit(self) -> bool:
+        """Indicate whether this instance was resolved from cache during planning."""
+        return getattr(self, "_is_cache_hit", False)
+
+    @is_cache_hit.setter
+    def is_cache_hit(self, value: bool) -> None:
+        self._is_cache_hit = bool(value)
+
 
 class FuelStop(models.Model):
     id = models.BigAutoField(primary_key=True)

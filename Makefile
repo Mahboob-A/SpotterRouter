@@ -14,10 +14,10 @@ STATIONS_CSV ?= dataset/fuel-prices-for-be-assessment.csv
 LOAD_STATIONS_FLAGS ?=
 TEST_ARGS ?=
 
-.PHONY: help setup-env up down build logs \
-        dev-up dev-down dev-build dev-logs \
+.PHONY: help setup-env up down build logs restart restart-backend \
+        dev-up dev-down dev-build dev-logs dev-restart \
         migrate load-data test lint shell \
-        prod-build prod-up prod-down prod-logs prod-migrate
+        prod-build prod-up prod-down prod-logs prod-migrate prod-restart-backend
 
 # -----------------------------------------------------------------------------
 # Help & Information
@@ -29,6 +29,7 @@ help:
 	@echo "  make down          - Stop development environment"
 	@echo "  make build         - Build development Docker images"
 	@echo "  make logs          - Follow development backend logs"
+	@echo "  make restart-backend - Restart development backend container (alias: make restart)"
 	@echo "  make migrate       - Run database migrations in development"
 	@echo "  make load-data     - Import, deduplicate, and geocode station dataset"
 	@echo "  make test          - Run test suite inside backend container (optional: TEST_ARGS='...')"
@@ -39,6 +40,7 @@ help:
 	@echo "  make prod-down     - Stop production stack"
 	@echo "  make prod-logs     - Follow production stack logs"
 	@echo "  make prod-migrate  - Run database migrations in production"
+	@echo "  make prod-restart-backend - Restart production backend container"
 
 # -----------------------------------------------------------------------------
 # Environment Initialization
@@ -64,6 +66,9 @@ up: setup-env dev-up
 down: dev-down
 build: dev-build
 logs: dev-logs
+restart: restart-backend
+restart-backend:
+	$(COMPOSE_DEV) restart backend
 
 dev-up:
 	$(COMPOSE_DEV) up -d
@@ -76,6 +81,8 @@ dev-build:
 
 dev-logs:
 	$(COMPOSE_DEV) logs -f backend
+
+dev-restart: restart-backend
 
 migrate:
 	$(COMPOSE_DEV) exec -T backend python manage.py migrate
@@ -112,3 +119,7 @@ prod-logs:
 
 prod-migrate:
 	$(COMPOSE_PROD) exec -T backend python manage.py migrate
+
+prod-restart-backend:
+	$(COMPOSE_PROD) restart backend
+

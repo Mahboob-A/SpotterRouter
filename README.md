@@ -209,6 +209,7 @@ make lint
 | `make up` | Start background Docker Compose services |
 | `make down` | Stop and remove running containers |
 | `make logs` | Stream logs from the Django web service |
+| `make restart-backend` | Restart development backend container (alias: `make restart`) |
 | `make migrate` | Execute Django database migrations |
 | `make load-data` | Run raw import, deduplication, and geocoding pipeline |
 | `make test` | Run complete pytest test suite (supports `TEST_ARGS="..."`) |

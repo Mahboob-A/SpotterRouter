@@ -11,6 +11,7 @@ from api.serializers import (
     TripPlanRequestSerializer,
     TripPlanResponseSerializer,
 )
+from trips.caching import TripCacheManager
 from trips.repositories import TripPlanRepository
 from trips.services import TripPlanningService
 
@@ -71,10 +72,12 @@ class TripPlanDetailView(APIView):  # type: ignore[misc]
     def __init__(
         self,
         repository: TripPlanRepository | None = None,
+        cache_manager: TripCacheManager | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self._repository = repository or TripPlanRepository()
+        self._cache_manager = cache_manager or TripCacheManager()
 
     def get(self, request: Request, trip_id: uuid.UUID) -> Response:
         trip = self._repository.get_by_id(trip_id)
@@ -82,5 +85,13 @@ class TripPlanDetailView(APIView):  # type: ignore[misc]
             raise exceptions.NotFound(
                 "Trip plan with the specified ID was not found."
             )
+        is_hit = bool(
+            trip.cache_key
+            and self._cache_manager.exists_in_cache(trip.cache_key)
+        )
+
         response_serializer = TripPlanResponseSerializer(trip)
-        return Response(response_serializer.data, status=status.HTTP_200_OK)
+        response = Response(response_serializer.data, status=status.HTTP_200_OK)
+        response["X-Cache"] = "HIT" if is_hit else "MISS"
+        return response
+

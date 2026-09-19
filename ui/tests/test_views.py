@@ -139,6 +139,7 @@ def test_trip_detail_view_get_success(
     response = client.get(url)
 
     assert response.status_code == 200
+    assert response.headers.get("X-Cache") == "MISS"
     assert "trip" in response.context
     assert "route_geojson" in response.context
     assert "fuel_stops" in response.context
@@ -162,6 +163,39 @@ def test_trip_detail_view_get_success(
     assert '<th style="width: 70px;">Stop #</th>' not in content
     assert 'id="map"' in content
     assert "SPEEDWAY #100" in content
+
+
+def test_trip_detail_view_cache_hit(
+    client: Client, sample_trip_plan: TripPlan, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from trips.caching import TripCacheManager
+
+    monkeypatch.setattr(
+        TripCacheManager,
+        "exists_in_cache",
+        lambda self, key: True,
+    )
+
+    url = reverse("trip-detail", kwargs={"trip_id": sample_trip_plan.id})
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert response.headers.get("X-Cache") == "HIT"
+
+
+def test_trip_detail_view_cache_miss_when_no_key(
+    client: Client, sample_trip_plan: TripPlan
+) -> None:
+    sample_trip_plan.cache_key = ""
+    sample_trip_plan.save(update_fields=["cache_key"])
+
+    url = reverse("trip-detail", kwargs={"trip_id": sample_trip_plan.id})
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert response.headers.get("X-Cache") == "MISS"
+
+
 
 
 def test_trip_detail_view_not_found(client: Client, db: None) -> None:

@@ -16,6 +16,7 @@ from core.exceptions import FuelRouterError
 from stations.models import Station
 from stations.repositories import PricingDatasetRepository
 from stations.services import DatasetIngestionService
+from trips.caching import TripCacheManager
 from trips.reports import TripPdfReportService
 from trips.repositories import TripPlanRepository
 from trips.services import TripPlanningService
@@ -204,10 +205,12 @@ class TripDetailView(View):
     def __init__(
         self,
         repository: TripPlanRepository | None = None,
+        cache_manager: TripCacheManager | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self._repository = repository or TripPlanRepository()
+        self._cache_manager = cache_manager or TripCacheManager()
 
     def get(self, request: HttpRequest, trip_id: uuid.UUID) -> HttpResponse:
         trip = self._repository.get_by_id(trip_id)
@@ -258,6 +261,14 @@ class TripDetailView(View):
         initial_fuel_gallons = getattr(trip, "initial_fuel_gallons", Decimal("50.000"))
 
         cache_status = request.session.pop(f"trip_cache_{trip.id}", None)
+        if not cache_status:
+            is_in_cache = bool(
+                trip.cache_key
+                and self._cache_manager.exists_in_cache(trip.cache_key)
+            )
+            cache_status = "HIT" if is_in_cache else "MISS"
+
+
         context = {
             "trip": trip,
             "route_geojson": route_geojson,
@@ -278,8 +289,7 @@ class TripDetailView(View):
             "map_tile_max_zoom": getattr(settings, "MAP_TILE_MAX_ZOOM", 19),
         }
         response = render(request, "ui/trip_detail.html", context)
-        if cache_status:
-            response["X-Cache"] = cache_status
+        response["X-Cache"] = cache_status
         return response
 
 

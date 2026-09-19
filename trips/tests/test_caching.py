@@ -197,3 +197,24 @@ def test_cache_manager_graceful_degradation_on_redis_error() -> None:
 
     # set should not raise on redis connection error
     manager.set(plan)
+
+
+def test_cache_manager_exists_in_cache_hit_and_miss() -> None:
+    mock_redis = MagicMock()
+    mock_redis.exists.side_effect = lambda key: 1 if "hit_key" in key else 0
+    manager = TripCacheManager(redis_client=mock_redis)
+
+    assert manager.exists_in_cache("hit_key") is True
+    assert manager.exists_in_cache("miss_key") is False
+    assert manager.exists_in_cache("") is False
+    mock_redis.exists.assert_any_call("trip:hit_key")
+    mock_redis.exists.assert_any_call("trip:miss_key")
+
+
+def test_cache_manager_exists_in_cache_degrades_gracefully_on_redis_error() -> None:
+    mock_redis = MagicMock()
+    mock_redis.exists.side_effect = redis.ConnectionError("Redis down")
+    manager = TripCacheManager(redis_client=mock_redis)
+
+    assert manager.exists_in_cache("some_key") is False
+

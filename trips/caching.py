@@ -237,3 +237,17 @@ class TripCacheManager:
                 trip_plan.cache_key,
                 exc,
             )
+
+    def exists_in_cache(self, cache_key: str) -> bool:
+        """Check if trip plan currently exists in the Redis fast-path cache."""
+        if not cache_key:
+            return False
+        try:
+            client = self._get_redis()
+            if client is not None:
+                return bool(client.exists(f"{self._redis_prefix}{cache_key}"))
+        except (redis.RedisError, Exception) as exc:
+            logger.warning("Redis exists check error for key %s: %s", cache_key, exc)
+            return False
+        return False
+

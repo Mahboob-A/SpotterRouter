@@ -224,6 +224,7 @@ def test_get_trip_detail_success(
     response = api_client.get(url)
 
     assert response.status_code == status.HTTP_200_OK
+    assert response.headers.get("X-Cache") == "MISS"
     data = response.json()
     assert str(data["id"]) == str(sample_trip_plan.id)
     assert data["start_input"] == "Chicago, IL"
@@ -233,6 +234,27 @@ def test_get_trip_detail_success(
     assert data["route_geometry"]["type"] == "LineString"
     assert len(data["fuel_stops"]) == 1
     assert data["fuel_stops"][0]["station_name"] == "PILOT TRAVEL CENTER"
+
+
+def test_get_trip_detail_cache_hit(
+    api_client: APIClient,
+    sample_trip_plan: TripPlan,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from trips.caching import TripCacheManager
+
+    monkeypatch.setattr(
+        TripCacheManager,
+        "exists_in_cache",
+        lambda self, key: True,
+    )
+
+    url = reverse("trip-plan-detail", kwargs={"trip_id": sample_trip_plan.id})
+    response = api_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.headers.get("X-Cache") == "HIT"
+
 
 
 def test_get_trip_detail_not_found(api_client: APIClient, db: None) -> None:

@@ -13,6 +13,10 @@ Intelligent Long-Haul Fuel Route Optimization Engine for Contiguous US Commercia
 [![OpenAPI 3.0](https://img.shields.io/badge/OpenAPI-3.0.3-6BA539.svg?logo=openapi-initiative&logoColor=white)](/openapi.yaml)
 [![Dokploy Ready](https://img.shields.io/badge/Deploy-Dokploy-000000.svg)](/docs/?doc=05-Deployments/dokploy-platform-deployment-and-traefik)
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/340d8a62-55a2-47d9-845c-8e3ebcd2d6e1" alt="SpotterRouter Fleet Fuel Optimization Engine" width="700" height="500" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);" />
+</p>
+
 ---
 
 ## Application Routes & Live Navigation

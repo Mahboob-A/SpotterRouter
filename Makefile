@@ -10,7 +10,7 @@ ENV_PROD_FLAG := $(if $(wildcard .env.prod),--env-file .env.prod,)
 COMPOSE_DEV := docker compose $(DOCKER_COMPOSE_BASE) -f docker-compose.dev.yml $(ENV_DEV_FLAG)
 COMPOSE_PROD := docker compose $(DOCKER_COMPOSE_BASE) -f docker-compose.prod.yml $(ENV_PROD_FLAG)
 
-STATIONS_CSV ?= fuel-prices-for-be-assessment.csv
+STATIONS_CSV ?= dataset/fuel-prices-for-be-assessment.csv
 LOAD_STATIONS_FLAGS ?=
 TEST_ARGS ?=
 

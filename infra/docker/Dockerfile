@@ -27,7 +27,7 @@ RUN apt-get update \
 # Create unprivileged system user and group
 RUN groupadd -r -g 1000 appgroup \
     && useradd -r -u 1000 -g appgroup -d /home/appuser -m -s /sbin/nologin appuser \
-    && mkdir -p /home/appuser/.uszipcode /app/staticfiles /opt/venv \
+    && mkdir -p /home/appuser/.uszipcode /app/staticfiles /app/dataset /opt/venv \
     && chown -R appuser:appgroup /home/appuser /app /opt/venv
 
 # -----------------------------------------------------------------------------

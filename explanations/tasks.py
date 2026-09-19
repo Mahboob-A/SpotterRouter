@@ -15,8 +15,8 @@ from trips.repositories import TripPlanRepository
 logger = logging.getLogger(__name__)
 
 UNCONFIGURED_EXPLANATION_NOTICE = (
-    "AI Route Rationale is unconfigured: FIREWORKS_API_KEY is not set in this "
-    "environment. To enable real-time DeepSeek route rationale, supply a valid "
+    "Analysis is unconfigured: FIREWORKS_API_KEY is not set in this "
+    "environment. To enable real-time AI-powered route analysis, supply a valid "
     "Fireworks API key in your environment configuration."
 )
 

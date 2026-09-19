@@ -6,7 +6,11 @@ from django.db import transaction
 
 from core.constants import CORRIDOR_BUFFER_MILES, MAX_RANGE_MILES, MPG_CONSTANT
 from routing.services import GeocodingService, RoutingService
-from stations.repositories import StationCandidate, StationRepository
+from stations.repositories import (
+    PricingDatasetRepository,
+    StationCandidate,
+    StationRepository,
+)
 from trips.caching import TripCacheManager, build_trip_cache_key
 from trips.models import FuelStop, TripPlan
 from trips.repositories import FuelStopRepository, TripPlanRepository
@@ -76,6 +80,7 @@ class TripPlanningService:
         trip_repository: TripPlanRepository | None = None,
         fuel_stop_repository: FuelStopRepository | None = None,
         cache_manager: TripCacheManager | None = None,
+        dataset_repository: PricingDatasetRepository | None = None,
         corridor_buffer_miles: Decimal = CORRIDOR_BUFFER_MILES,
     ) -> None:
         self._geocoding = geocoding_service or GeocodingService()
@@ -85,11 +90,16 @@ class TripPlanningService:
         self._trips = trip_repository or TripPlanRepository()
         self._fuel_stops = fuel_stop_repository or FuelStopRepository()
         self._cache_manager = cache_manager or TripCacheManager()
+        self._datasets = dataset_repository or PricingDatasetRepository()
         self._corridor_buffer_miles = corridor_buffer_miles
 
     def plan_trip(self, start_input: str, end_input: str) -> TripPlan:
         """Compute an optimal fuel-stop route or retrieve a cached plan."""
-        cache_key = build_trip_cache_key(start_input, end_input)
+        active_dataset = self._datasets.get_active()
+        version_code = active_dataset.version_code if active_dataset else ""
+        cache_key = build_trip_cache_key(
+            start_input, end_input, version_code=version_code
+        )
 
         cached_plan = self._cache_manager.get(cache_key)
         if cached_plan is not None:
@@ -124,6 +134,7 @@ class TripPlanningService:
                 total_gallons=opt_result.total_gallons,
                 total_cost=opt_result.total_cost,
                 cache_key=cache_key,
+                pricing_dataset=active_dataset,
             )
             saved_plan = self._trips.save(trip_plan)
 

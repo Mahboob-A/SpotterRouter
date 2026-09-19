@@ -10,18 +10,25 @@ import redis
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry, LineString, Point
 
-from stations.models import Station
+from stations.models import PricingDataset, Station
 from trips.models import FuelStop, TripPlan
 from trips.repositories import TripPlanRepository
 
 logger = logging.getLogger(__name__)
 
 
-def build_trip_cache_key(start_input: str, end_input: str) -> str:
-    """Produce a deterministic 64-character SHA-256 hash from normalized inputs."""
+def build_trip_cache_key(
+    start_input: str, end_input: str, version_code: str = ""
+) -> str:
+    """Produce a deterministic 64-character SHA-256 hash from inputs and version."""
     norm_start = " ".join(start_input.strip().lower().split())
     norm_end = " ".join(end_input.strip().lower().split())
-    combined = f"{norm_start}::{norm_end}"
+    norm_version = version_code.strip()
+    combined = (
+        f"{norm_start}::{norm_end}::{norm_version}"
+        if norm_version
+        else f"{norm_start}::{norm_end}"
+    )
     return hashlib.sha256(combined.encode("utf-8")).hexdigest()
 
 
@@ -51,6 +58,14 @@ def serialize_trip_plan(trip_plan: TripPlan) -> str:
             }
         )
 
+    dataset_version = ""
+    pricing_dataset_id = None
+    if trip_plan.pricing_dataset_id:
+        pricing_dataset_id = str(trip_plan.pricing_dataset_id)
+        pricing_ds = getattr(trip_plan, "pricing_dataset", None)
+        if pricing_ds is not None:
+            dataset_version = str(getattr(pricing_ds, "version_code", "") or "")
+
     payload: dict[str, Any] = {
         "id": str(trip_plan.id),
         "start_input": trip_plan.start_input,
@@ -62,6 +77,8 @@ def serialize_trip_plan(trip_plan: TripPlan) -> str:
         "total_gallons": str(trip_plan.total_gallons),
         "total_cost": str(trip_plan.total_cost),
         "cache_key": trip_plan.cache_key,
+        "pricing_dataset_id": pricing_dataset_id,
+        "dataset_version": dataset_version,
         "ai_explanation": trip_plan.ai_explanation,
         "created_at": (
             trip_plan.created_at.isoformat() if trip_plan.created_at else None
@@ -79,6 +96,15 @@ def deserialize_trip_plan(payload_str: str) -> TripPlan:
         route_geom = LineString(data["route_geometry"]["coordinates"], srid=4326)
     else:
         route_geom.srid = 4326
+
+    pricing_dataset = None
+    ds_id_raw = data.get("pricing_dataset_id")
+    ds_id = uuid.UUID(ds_id_raw) if ds_id_raw else None
+    if ds_id:
+        pricing_dataset = PricingDataset(
+            id=ds_id,
+            version_code=data.get("dataset_version", ""),
+        )
 
     plan = TripPlan(
         id=uuid.UUID(data["id"]),
@@ -99,6 +125,7 @@ def deserialize_trip_plan(payload_str: str) -> TripPlan:
         total_gallons=Decimal(str(data["total_gallons"])),
         total_cost=Decimal(str(data["total_cost"])),
         cache_key=data["cache_key"],
+        pricing_dataset_id=ds_id,
         ai_explanation=data.get("ai_explanation"),
         created_at=(
             datetime.fromisoformat(data["created_at"])
@@ -106,6 +133,8 @@ def deserialize_trip_plan(payload_str: str) -> TripPlan:
             else datetime.now()
         ),
     )
+    if pricing_dataset:
+        plan.pricing_dataset = pricing_dataset
 
     fuel_stops: list[FuelStop] = []
     for stop_data in data.get("fuel_stops", []):

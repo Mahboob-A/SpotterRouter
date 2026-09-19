@@ -98,10 +98,7 @@ class TestTripPlanRepository:
 
         refetched = repo.get_by_id(trip.id)
         assert refetched is not None
-        assert (
-            refetched.ai_explanation
-            == "Recommended route due to low fuel prices."
-        )
+        assert refetched.ai_explanation == "Recommended route due to low fuel prices."
 
     def test_update_explanation_missing_trip_returns_false(self) -> None:
         repo = TripPlanRepository()

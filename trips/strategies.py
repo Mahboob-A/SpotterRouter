@@ -58,9 +58,7 @@ class GreedyLookaheadStrategy(RefuelStrategy):
             reachable = [
                 c
                 for c in ordered
-                if position
-                < c.distance_from_start_miles
-                <= position + max_range
+                if position < c.distance_from_start_miles <= position + max_range
             ]
 
             dist_to_dest = total_distance_miles - position
@@ -72,20 +70,12 @@ class GreedyLookaheadStrategy(RefuelStrategy):
                 )
 
             cheaper_ahead = (
-                [
-                    c
-                    for c in reachable
-                    if c.retail_price < current_station.retail_price
-                ]
+                [c for c in reachable if c.retail_price < current_station.retail_price]
                 if current_station is not None
                 else []
             )
 
-            if (
-                current_station is not None
-                and dest_reachable
-                and not cheaper_ahead
-            ):
+            if current_station is not None and dest_reachable and not cheaper_ahead:
                 leg_miles = dist_to_dest
                 gallons_needed = max(
                     Decimal("0"), (leg_miles - remaining_range) / fuel_mpg
@@ -95,8 +85,7 @@ class GreedyLookaheadStrategy(RefuelStrategy):
                     cost = Decimal(
                         str(
                             round(
-                                gallons_purchased
-                                * current_station.retail_price,
+                                gallons_purchased * current_station.retail_price,
                                 2,
                             )
                         )
@@ -119,9 +108,7 @@ class GreedyLookaheadStrategy(RefuelStrategy):
                 break
 
             if cheaper_ahead:
-                target = min(
-                    cheaper_ahead, key=lambda c: c.distance_from_start_miles
-                )
+                target = min(cheaper_ahead, key=lambda c: c.distance_from_start_miles)
                 leg_miles = target.distance_from_start_miles - position
                 gallons_needed = max(
                     Decimal("0"), (leg_miles - remaining_range) / fuel_mpg
@@ -158,9 +145,7 @@ class GreedyLookaheadStrategy(RefuelStrategy):
                     )
                 )
 
-            remaining_range = (
-                remaining_range + gallons_purchased * fuel_mpg - leg_miles
-            )
+            remaining_range = remaining_range + gallons_purchased * fuel_mpg - leg_miles
             position = target.distance_from_start_miles
             current_station = target
 

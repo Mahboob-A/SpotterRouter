@@ -13,7 +13,11 @@ from routing.adapters.base import RouteResult
 from routing.coordinates import Coordinates
 from routing.services import GeocodingService, RoutingService
 from stations.models import Station
-from stations.repositories import StationCandidate, StationRepository
+from stations.repositories import (
+    PricingDatasetRepository,
+    StationCandidate,
+    StationRepository,
+)
 from trips.caching import TripCacheManager
 from trips.models import FuelStop, TripPlan
 from trips.repositories import FuelStopRepository, TripPlanRepository
@@ -47,6 +51,8 @@ def test_plan_trip_cache_hit_bypasses_all_services() -> None:
     mock_routing = MagicMock(spec=RoutingService)
     mock_stations = MagicMock(spec=StationRepository)
     mock_refuel = MagicMock(spec=RefuelOptimizationService)
+    mock_datasets = MagicMock(spec=PricingDatasetRepository)
+    mock_datasets.get_active.return_value = None
 
     service = TripPlanningService(
         geocoding_service=mock_geocoding,
@@ -54,6 +60,7 @@ def test_plan_trip_cache_hit_bypasses_all_services() -> None:
         station_repository=mock_stations,
         refuel_service=mock_refuel,
         cache_manager=mock_cache,
+        dataset_repository=mock_datasets,
     )
 
     result = service.plan_trip("Chicago, IL", "Dallas, TX")
@@ -242,3 +249,97 @@ def test_plan_trip_insufficient_coverage_propagates_without_db_writes() -> None:
         service.plan_trip("Chicago, IL", "Dallas, TX")
 
     assert TripPlan.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_plan_trip_links_active_pricing_dataset_and_sets_versioned_cache_key() -> None:
+    from stations.models import PricingDataset
+    from trips.caching import build_trip_cache_key
+
+    PricingDataset.objects.filter(is_active=True).update(is_active=False)
+    active_ds = PricingDataset.objects.create(
+        version_code="OPIS-2026-ACTIVE",
+        filename="active_prices.csv",
+        file_hash="hash_active_123",
+        station_count=1,
+        is_active=True,
+    )
+
+    station = Station.objects.create(
+        opis_id="OPIS_200",
+        name="Loves Active",
+        city="Springfield",
+        state="MO",
+        retail_price=Decimal("2.999"),
+        location=Point(-93.29, 37.20, srid=4326),
+    )
+
+    start_coords = Coordinates(longitude=-87.6298, latitude=41.8781)
+    end_coords = Coordinates(longitude=-96.7970, latitude=32.7767)
+
+    mock_geocoding = MagicMock(spec=GeocodingService)
+    mock_geocoding.resolve.side_effect = [start_coords, end_coords]
+
+    route_geom = LineString([(-87.6298, 41.8781), (-96.7970, 32.7767)], srid=4326)
+    route_result = RouteResult(
+        route_geometry=route_geom,
+        total_distance_miles=Decimal("500.00"),
+        duration_seconds=18000.0,
+    )
+    mock_routing = MagicMock(spec=RoutingService)
+    mock_routing.get_route.return_value = route_result
+
+    assert station.location is not None
+    candidate = StationCandidate(
+        station_id=station.id,
+        opis_id=station.opis_id,
+        name=station.name,
+        city=station.city,
+        state=station.state,
+        location=station.location,
+        retail_price=station.retail_price,
+        distance_from_start_miles=Decimal("250.00"),
+    )
+    mock_stations = MagicMock(spec=StationRepository)
+    mock_stations.find_in_corridor.return_value = [candidate]
+
+    stop_plan = FuelStopPlan(
+        station_id=station.id,
+        distance_from_start_miles=Decimal("250.00"),
+        gallons_purchased=Decimal("50.000"),
+        price_per_gallon=Decimal("2.999"),
+        cost=Decimal("149.95"),
+    )
+    opt_result = OptimizationResult(
+        stops=[stop_plan],
+        total_gallons=Decimal("50.000"),
+        total_cost=Decimal("149.95"),
+        total_gallons_purchased=Decimal("50.000"),
+    )
+    mock_refuel = MagicMock(spec=RefuelOptimizationService)
+    mock_refuel.optimize.return_value = opt_result
+
+    mock_cache = MagicMock(spec=TripCacheManager)
+    mock_cache.get.return_value = None
+
+    service = TripPlanningService(
+        geocoding_service=mock_geocoding,
+        routing_service=mock_routing,
+        station_repository=mock_stations,
+        refuel_service=mock_refuel,
+        trip_repository=TripPlanRepository(),
+        fuel_stop_repository=FuelStopRepository(),
+        cache_manager=mock_cache,
+    )
+
+    plan = service.plan_trip("Chicago, IL", "Dallas, TX")
+
+    expected_cache_key = build_trip_cache_key(
+        "Chicago, IL", "Dallas, TX", version_code="OPIS-2026-ACTIVE"
+    )
+    assert plan.cache_key == expected_cache_key
+    assert plan.pricing_dataset == active_ds
+
+    db_plan = TripPlan.objects.get(id=plan.id)
+    assert db_plan.cache_key == expected_cache_key
+    assert db_plan.pricing_dataset == active_ds

@@ -23,6 +23,55 @@ def test_build_trip_cache_key_normalizes_casing_and_whitespace() -> None:
     assert key1 != key_diff
 
 
+def test_build_trip_cache_key_incorporates_version_code() -> None:
+    base_key = build_trip_cache_key("Chicago, IL", "Dallas, TX")
+    v1_key = build_trip_cache_key("Chicago, IL", "Dallas, TX", version_code="OPIS-V1")
+    v2_key = build_trip_cache_key("Chicago, IL", "Dallas, TX", version_code="OPIS-V2")
+    v1_padded = build_trip_cache_key(
+        "Chicago, IL", "Dallas, TX", version_code="  OPIS-V1  "
+    )
+
+    assert v1_key == v1_padded
+    assert len(v1_key) == 64
+    assert v1_key != base_key
+    assert v1_key != v2_key
+
+
+def test_serialize_and_deserialize_preserves_pricing_dataset() -> None:
+    from stations.models import PricingDataset
+    from trips.caching import deserialize_trip_plan, serialize_trip_plan
+
+    ds_id = uuid.uuid4()
+    ds = PricingDataset(id=ds_id, version_code="OPIS-2026-TEST")
+
+    plan = TripPlan(
+        id=uuid.uuid4(),
+        start_input="Chicago, IL",
+        end_input="Dallas, TX",
+        start_point=Point(-87.6298, 41.8781, srid=4326),
+        end_point=Point(-96.7970, 32.7767, srid=4326),
+        route_geometry=LineString(
+            [(-87.6298, 41.8781), (-96.7970, 32.7767)], srid=4326
+        ),
+        total_distance_miles=Decimal("967.30"),
+        total_gallons=Decimal("96.730"),
+        total_cost=Decimal("341.52"),
+        cache_key="d" * 64,
+        pricing_dataset=ds,
+    )
+    plan.pricing_dataset_id = ds_id
+    plan._prefetched_objects_cache = {"fuel_stops": []}  # type: ignore[attr-defined]
+
+    serialized = serialize_trip_plan(plan)
+    assert '"dataset_version": "OPIS-2026-TEST"' in serialized
+    assert f'"{ds_id}"' in serialized
+
+    deserialized = deserialize_trip_plan(serialized)
+    assert deserialized.pricing_dataset_id == ds_id
+    assert deserialized.pricing_dataset is not None
+    assert deserialized.pricing_dataset.version_code == "OPIS-2026-TEST"
+
+
 def test_cache_manager_redis_hit_returns_plan_without_db_query() -> None:
     plan_id = uuid.uuid4()
     cache_key = "a" * 64
@@ -32,7 +81,7 @@ def test_cache_manager_redis_hit_returns_plan_without_db_query() -> None:
         '"end_input": "Dallas, TX", "start_point": [-87.6298, 41.8781], '
         '"end_point": [-96.7970, 32.7767], '
         '"route_geometry": {"type": "LineString", "coordinates": '
-        '[[-87.6298, 41.8781], [-96.7970, 32.7767]]}, '
+        "[[-87.6298, 41.8781], [-96.7970, 32.7767]]}, "
         '"total_distance_miles": "967.30", "total_gallons": "96.730", '
         '"total_cost": "341.52", "cache_key": "' + cache_key + '", '
         '"ai_explanation": null, "created_at": "2026-09-18T12:00:00Z", '

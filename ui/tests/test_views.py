@@ -126,13 +126,19 @@ def test_trip_detail_view_get_success(
     assert "route_geojson" in response.context
     assert "fuel_stops" in response.context
     assert "stops_json" in response.context
+    assert "total_gallons_purchased" in response.context
+    assert "initial_fuel_gallons" in response.context
     assert "SPEEDWAY #100" in response.context["stops_json"]
 
     content = response.content.decode()
     assert "Chicago, IL" in content
     assert "Dallas, TX" in content
-    assert "Total Estimated Fuel Cost" in content
-    assert "AI Route Rationale" in content
+    assert "Total Refuel Cost" in content
+    assert "Fuel Purchased En Route" in content
+    assert "Analysis" in content
+    assert "DeepSeek" not in content
+    assert '<th style="width: 70px;">Stop</th>' in content
+    assert '<th style="width: 70px;">Stop #</th>' not in content
     assert 'id="map"' in content
     assert "SPEEDWAY #100" in content
 

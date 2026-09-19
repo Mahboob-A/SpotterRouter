@@ -47,38 +47,74 @@
 </div>
 
 <!-- Metrics Bar -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
     <div class="card" style="margin-bottom: 0; padding: 18px;">
         <span style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">Total Distance</span>
         <div class="tabular-nums" style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
             {{ trip.total_distance_miles }} <span style="font-size: 1rem; font-weight: 400; color: var(--text-muted);">miles</span>
         </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">10 MPG vehicle rating</div>
     </div>
     <div class="card" style="margin-bottom: 0; padding: 18px;">
-        <span style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">Total Estimated Fuel Cost</span>
+        <span style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">Total Refuel Cost</span>
         <div class="tabular-nums" style="font-size: 1.5rem; font-weight: 700; color: var(--success-text); margin-top: 4px;">
             ${{ trip.total_cost }}
         </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">En-route fuel purchases</div>
+    </div>
+    <div class="card" style="margin-bottom: 0; padding: 18px;">
+        <span style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">Fuel Purchased En Route</span>
+        <div class="tabular-nums" style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
+            {{ total_gallons_purchased }} <span style="font-size: 1rem; font-weight: 400; color: var(--text-muted);">gal</span>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Across {{ fuel_stops|length }} planned stop{{ fuel_stops|length|pluralize }}</div>
     </div>
     <div class="card" style="margin-bottom: 0; padding: 18px;">
         <span style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">Total Fuel Consumption</span>
         <div class="tabular-nums" style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
-            {{ trip.total_gallons }} <span style="font-size: 1rem; font-weight: 400; color: var(--text-muted);">gal (10 MPG)</span>
+            {{ trip.total_gallons }} <span style="font-size: 1rem; font-weight: 400; color: var(--text-muted);">gal</span>
         </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Total journey burn</div>
     </div>
     <div class="card" style="margin-bottom: 0; padding: 18px;">
-        <span style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">Fuel Stops Planned</span>
+        <span style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">Initial Range at Origin</span>
         <div class="tabular-nums" style="font-size: 1.5rem; font-weight: 700; color: var(--primary); margin-top: 4px;">
-            {{ fuel_stops|length }} <span style="font-size: 1rem; font-weight: 400; color: var(--text-muted);">stops (500-mi range)</span>
+            {{ initial_fuel_gallons }} <span style="font-size: 1rem; font-weight: 400; color: var(--text-muted);">gal</span>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">500-mi range pre-loaded</div>
+    </div>
+</div>
+
+<!-- Fuel Accounting & Journey Balance -->
+<div class="card" style="margin-bottom: 24px; padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+        <h2 class="card-title" style="margin-bottom: 0;">Fuel Accounting &amp; Balance</h2>
+        <span class="badge badge-blue">Reconciled (10 MPG)</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+        <div style="padding: 14px; background-color: var(--card-subtle); border: 1px solid var(--border-color); border-radius: 8px;">
+            <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">1. Origin Departure</div>
+            <div class="tabular-nums" style="font-size: 1.25rem; font-weight: 700; color: var(--text-main);">{{ initial_fuel_gallons }} gal</div>
+            <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Full tank pre-loaded at origin (covers first 500.00 miles; not billed on trip).</div>
+        </div>
+        <div style="padding: 14px; background-color: var(--card-subtle); border: 1px solid var(--border-color); border-radius: 8px;">
+            <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">2. En-Route Refueling</div>
+            <div class="tabular-nums" style="font-size: 1.25rem; font-weight: 700; color: var(--success-text);">{{ total_gallons_purchased }} gal &bull; ${{ trip.total_cost }}</div>
+            <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Purchased across {{ fuel_stops|length }} stop{{ fuel_stops|length|pluralize }} along corridor to reach destination safely.</div>
+        </div>
+        <div style="padding: 14px; background-color: var(--card-subtle); border: 1px solid var(--border-color); border-radius: 8px;">
+            <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">3. Total Journey Consumed</div>
+            <div class="tabular-nums" style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">{{ trip.total_gallons }} gal</div>
+            <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Total fuel burned over {{ trip.total_distance_miles }} miles (50.0 gal origin + {{ total_gallons_purchased }} gal refuel).</div>
         </div>
     </div>
 </div>
 
-<!-- AI Explanation Card -->
+<!-- Analysis Card -->
 <div class="card">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-        <h2 class="card-title" style="margin-bottom: 0;">AI Route Rationale</h2>
-        <span class="badge badge-blue">DeepSeek V4.1 Flash</span>
+        <h2 class="card-title" style="margin-bottom: 0;">Analysis</h2>
+        <span class="badge badge-blue">AI-Powered</span>
     </div>
     {% if trip.ai_explanation %}
         {% if "unconfigured" in trip.ai_explanation|lower %}
@@ -93,7 +129,7 @@
     {% else %}
     <div id="ai-loading-box" style="display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.875rem;">
         <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: var(--primary); animation: pulse 1.5s infinite;"></span>
-        <span>Generating AI explanation in background...</span>
+        <span>Generating route analysis in background...</span>
     </div>
     <div id="ai-notice-box" style="display: none; padding: 12px 16px; background-color: var(--card-subtle); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-muted); font-size: 0.875rem; line-height: 1.5;"></div>
     <p id="ai-explanation-text" style="display: none; color: var(--text-main); line-height: 1.6; font-size: 0.9375rem; margin-top: 8px;"></p>
@@ -119,7 +155,7 @@
         <table>
             <thead>
                 <tr>
-                    <th style="width: 70px;">Stop #</th>
+                    <th style="width: 70px;">Stop</th>
                     <th>Station Name</th>
                     <th>Location</th>
                     <th>Miles from Origin</th>
@@ -144,9 +180,9 @@
             <tfoot>
                 <tr style="background-color: var(--table-header-bg); font-weight: 700;">
                     <td colspan="4" style="text-align: right;">Total Refuel Summary:</td>
-                    <td>{{ trip.total_gallons }} gal</td>
+                    <td class="tabular-nums">{{ total_gallons_purchased }} gal</td>
                     <td>-</td>
-                    <td style="color: var(--success-text);">${{ trip.total_cost }}</td>
+                    <td class="tabular-nums" style="color: var(--success-text);">${{ trip.total_cost }}</td>
                 </tr>
             </tfoot>
         </table>

@@ -1,5 +1,6 @@
 import json
 import uuid
+from decimal import Decimal
 from typing import Any
 
 from django.contrib import messages
@@ -236,6 +237,12 @@ class TripDetailView(View):
         dest_lat = float(trip.end_point.y) if trip.end_point else 0.0
         dest_lng = float(trip.end_point.x) if trip.end_point else 0.0
 
+        total_gallons_purchased = sum(
+            (stop.gallons_purchased for stop in fuel_stops),
+            Decimal("0.000"),
+        )
+        initial_fuel_gallons = getattr(trip, "initial_fuel_gallons", Decimal("50.000"))
+
         context = {
             "trip": trip,
             "route_geojson": route_geojson,
@@ -245,6 +252,8 @@ class TripDetailView(View):
             "origin_lng": origin_lng,
             "dest_lat": dest_lat,
             "dest_lng": dest_lng,
+            "total_gallons_purchased": total_gallons_purchased,
+            "initial_fuel_gallons": initial_fuel_gallons,
         }
         return render(request, "ui/trip_detail.html", context)
 

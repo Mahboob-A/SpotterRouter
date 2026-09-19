@@ -777,3 +777,20 @@ def test_openapi_schema_view_not_found(client: Client, settings: Any) -> None:
     settings.BASE_DIR = Path("/nonexistent/dir")
     response = client.get("/openapi.yaml")
     assert response.status_code == 404
+
+
+def test_base_template_header_contains_github_link(client: Client, db: None) -> None:
+    response = client.get("/")
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+    assert "https://github.com/Mahboob-A/SpotterRouter" in content
+    assert "GitHub" in content
+    # Verify order: API Docs before GitHub, GitHub before theme-toggle
+    api_docs_pos = content.find("/api-docs/")
+    github_pos = content.find("https://github.com/Mahboob-A/SpotterRouter")
+    theme_pos = content.find("id=\"theme-toggle\"")
+    assert api_docs_pos != -1
+    assert github_pos != -1
+    assert theme_pos != -1
+    assert api_docs_pos < github_pos < theme_pos
+

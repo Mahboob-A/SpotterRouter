@@ -24,3 +24,5 @@ build/
 # Coding assistants
 .claude/
 .codex/
+.impeccable
+.impeccable/

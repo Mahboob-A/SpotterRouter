@@ -4,19 +4,21 @@ from ui.docs_service import DocsService
 def test_docs_service_catalog_loaded() -> None:
     service = DocsService()
     categories = service.get_categories()
-    assert len(categories) == 6
+    assert len(categories) == 8
 
     flat_docs = service.get_flat_docs()
-    assert len(flat_docs) == 17
+    assert len(flat_docs) == 24
 
     category_ids = [c.id for c in categories]
     assert category_ids == [
-        "01-architecture",
-        "02-current-system",
-        "03-tradeoffs",
-        "04-brainstorming-and-failed-paths",
-        "05-learning-journey",
-        "06-preparation-and-testing",
+        "01-Architecture",
+        "02-Current-system",
+        "03-Tradeoffs",
+        "04-Infra",
+        "05-Deployments",
+        "06-Brainstorming-and-failed-paths",
+        "07-Learning-journey",
+        "08-Preparation-and-testing",
     ]
 
 

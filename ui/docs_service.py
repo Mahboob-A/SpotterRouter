@@ -36,12 +36,12 @@ class DocDetail:
 
 DOCS_CATALOG_DATA: list[dict[str, Any]] = [
     {
-        "id": "01-architecture",
+        "id": "01-Architecture",
         "title": "01 System Architecture",
         "docs": [
             {
                 "slug": (
-                    "01-architecture/clean-architecture-and-domain-isolation"
+                    "01-Architecture/clean-architecture-and-domain-isolation"
                 ),
                 "title": "Clean Architecture and Domain Isolation",
                 "filename": "clean-architecture-and-domain-isolation.md",
@@ -51,7 +51,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
                 ),
             },
             {
-                "slug": "01-architecture/two-tier-caching-and-cache-aside",
+                "slug": "01-Architecture/two-tier-caching-and-cache-aside",
                 "title": "Two-Tier Caching and Cache-Aside Pattern",
                 "filename": "two-tier-caching-and-cache-aside.md",
                 "summary": (
@@ -61,7 +61,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
             },
             {
                 "slug": (
-                    "01-architecture/asynchronous-celery-worker-pipeline"
+                    "01-Architecture/asynchronous-celery-worker-pipeline"
                 ),
                 "title": "Asynchronous Celery Worker Pipeline",
                 "filename": "asynchronous-celery-worker-pipeline.md",
@@ -73,11 +73,11 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
         ],
     },
     {
-        "id": "02-current-system",
+        "id": "02-Current-system",
         "title": "02 Current Implemented System",
         "docs": [
             {
-                "slug": "02-current-system/postgis-spatial-corridor-matching",
+                "slug": "02-Current-system/postgis-spatial-corridor-matching",
                 "title": "PostGIS Spatial Corridor Station Matching",
                 "filename": "postgis-spatial-corridor-matching.md",
                 "summary": (
@@ -86,7 +86,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
                 ),
             },
             {
-                "slug": "02-current-system/greedy-lookahead-refueling-engine",
+                "slug": "02-Current-system/greedy-lookahead-refueling-engine",
                 "title": "Greedy Lookahead Refueling Engine",
                 "filename": "greedy-lookahead-refueling-engine.md",
                 "summary": (
@@ -95,7 +95,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
                 ),
             },
             {
-                "slug": "02-current-system/in-memory-dispatch-pdf-generator",
+                "slug": "02-Current-system/in-memory-dispatch-pdf-generator",
                 "title": "In-Memory Dispatch PDF Generator",
                 "filename": "in-memory-dispatch-pdf-generator.md",
                 "summary": (
@@ -105,7 +105,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
             },
             {
                 "slug": (
-                    "02-current-system/dataset-versioning-and-csv-ingestion"
+                    "02-Current-system/dataset-versioning-and-csv-ingestion"
                 ),
                 "title": "Dataset Versioning and CSV Ingestion",
                 "filename": "dataset-versioning-and-csv-ingestion.md",
@@ -117,11 +117,11 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
         ],
     },
     {
-        "id": "03-tradeoffs",
+        "id": "03-Tradeoffs",
         "title": "03 Design Decisions and Tradeoffs",
         "docs": [
             {
-                "slug": "03-tradeoffs/local-filesystem-vs-cloud-s3",
+                "slug": "03-Tradeoffs/local-filesystem-vs-cloud-s3",
                 "title": "Local Filesystem vs Cloud S3 Storage",
                 "filename": "local-filesystem-vs-cloud-s3.md",
                 "summary": (
@@ -130,7 +130,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
                 ),
             },
             {
-                "slug": "03-tradeoffs/osm-direct-tiles-vs-maptiler-cloud",
+                "slug": "03-Tradeoffs/osm-direct-tiles-vs-maptiler-cloud",
                 "title": "OSM Direct Tiles vs MapTiler Cloud",
                 "filename": "osm-direct-tiles-vs-maptiler-cloud.md",
                 "summary": (
@@ -140,7 +140,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
             },
             {
                 "slug": (
-                    "03-tradeoffs/synchronous-vs-async-ai-explanations"
+                    "03-Tradeoffs/synchronous-vs-async-ai-explanations"
                 ),
                 "title": "Synchronous vs Asynchronous AI Explanations",
                 "filename": "synchronous-vs-async-ai-explanations.md",
@@ -152,12 +152,97 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
         ],
     },
     {
-        "id": "04-brainstorming-and-failed-paths",
-        "title": "04 Brainstorming and Failed Paths",
+        "id": "04-Infra",
+        "title": "04 Infrastructure Architecture",
         "docs": [
             {
                 "slug": (
-                    "04-brainstorming-and-failed-paths/what-did-not-work-first-attempts"
+                    "04-Infra/docker-compose-and-environment-architecture"
+                ),
+                "title": "Docker Compose and Multi-Environment Architecture",
+                "filename": "docker-compose-and-environment-architecture.md",
+                "summary": (
+                    "Architecture of development, production, and base Docker "
+                    "Compose topologies with isolated networking."
+                ),
+            },
+            {
+                "slug": "04-Infra/nginx-reverse-proxy-and-edge-routing",
+                "title": "Nginx Reverse Proxy and Edge Routing",
+                "filename": "nginx-reverse-proxy-and-edge-routing.md",
+                "summary": (
+                    "Placement of Nginx as an edge gateway, static asset streaming, "
+                    "buffer tuning, and upstream proxying."
+                ),
+            },
+            {
+                "slug": "04-Infra/redis-caching-and-hit-miss-lifecycle",
+                "title": "Redis Caching and Hit-Miss Lifecycle",
+                "filename": "redis-caching-and-hit-miss-lifecycle.md",
+                "summary": (
+                    "Cache resolution lifecycle, TTL strategies, dataset version "
+                    "invalidation, and the X-Cache HTTP header."
+                ),
+            },
+            {
+                "slug": (
+                    "04-Infra/infrastructure-tradeoffs-and-operational-choices"
+                ),
+                "title": "Infrastructure Tradeoffs and Operational Choices",
+                "filename": "infrastructure-tradeoffs-and-operational-choices.md",
+                "summary": (
+                    "Evaluating container setups, reverse proxy placement, caching "
+                    "layers, and database scaling boundaries."
+                ),
+            },
+        ],
+    },
+    {
+        "id": "05-Deployments",
+        "title": "05 Production Deployments",
+        "docs": [
+            {
+                "slug": (
+                    "05-Deployments/dokploy-platform-deployment-and-traefik"
+                ),
+                "title": "Dokploy Platform Deployment and Traefik Ingress",
+                "filename": "dokploy-platform-deployment-and-traefik.md",
+                "summary": (
+                    "Deploying Fuel Router on Dokploy, configuring Traefik edge "
+                    "routing, SSL automation, and container orchestration."
+                ),
+            },
+            {
+                "slug": (
+                    "05-Deployments/production-configuration-and-secrets"
+                ),
+                "title": "Production Configuration and Secrets Management",
+                "filename": "production-configuration-and-secrets.md",
+                "summary": (
+                    "Managing production environment variables, database credentials, "
+                    "API keys, and secret rotation patterns."
+                ),
+            },
+            {
+                "slug": (
+                    "05-Deployments/zero-downtime-release-and-health-checks"
+                ),
+                "title": "Zero-Downtime Release and Health Checks",
+                "filename": "zero-downtime-release-and-health-checks.md",
+                "summary": (
+                    "Automating safe database migrations, container readiness probes, "
+                    "and graceful zero-downtime deployments."
+                ),
+            },
+        ],
+    },
+    {
+        "id": "06-Brainstorming-and-failed-paths",
+        "title": "06 Brainstorming and Failed Paths",
+        "docs": [
+            {
+                "slug": (
+                    "06-Brainstorming-and-failed-paths/what-did-not-work-first-attempts"
                 ),
                 "title": "What Did Not Work - First Attempts and Failed Paths",
                 "filename": "what-did-not-work-first-attempts.md",
@@ -167,7 +252,9 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
                 ),
             },
             {
-                "slug": "04-brainstorming-and-failed-paths/what-worked-well-and-why",
+                "slug": (
+                    "06-Brainstorming-and-failed-paths/what-worked-well-and-why"
+                ),
                 "title": "What Worked Well and Why",
                 "filename": "what-worked-well-and-why.md",
                 "summary": (
@@ -178,12 +265,12 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
         ],
     },
     {
-        "id": "05-learning-journey",
-        "title": "05 What I Learned",
+        "id": "07-Learning-journey",
+        "title": "07 What I Learned",
         "docs": [
             {
                 "slug": (
-                    "05-learning-journey/first-time-with-postgis-and-spatial-sql"
+                    "07-Learning-journey/first-time-with-postgis-and-spatial-sql"
                 ),
                 "title": "First Time with PostGIS and Spatial SQL",
                 "filename": "first-time-with-postgis-and-spatial-sql.md",
@@ -194,7 +281,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
             },
             {
                 "slug": (
-                    "05-learning-journey/"
+                    "07-Learning-journey/"
                     "first-time-with-greedy-lookahead-algorithms"
                 ),
                 "title": "First Time with Greedy Lookahead Algorithms",
@@ -206,7 +293,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
             },
             {
                 "slug": (
-                    "05-learning-journey/"
+                    "07-Learning-journey/"
                     "learning-the-usa-freight-and-fuel-ecosystem"
                 ),
                 "title": "Learning the USA Freight and Fuel Ecosystem",
@@ -219,11 +306,11 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
         ],
     },
     {
-        "id": "06-preparation-and-testing",
-        "title": "06 Preparation and Engineering Standards",
+        "id": "08-Preparation-and-testing",
+        "title": "08 Preparation and Engineering Standards",
         "docs": [
             {
-                "slug": "06-preparation-and-testing/how-i-prepared-and-planned",
+                "slug": "08-Preparation-and-testing/how-i-prepared-and-planned",
                 "title": "How I Prepared and Planned the Assessment",
                 "filename": "how-i-prepared-and-planned.md",
                 "summary": (
@@ -233,7 +320,7 @@ DOCS_CATALOG_DATA: list[dict[str, Any]] = [
             },
             {
                 "slug": (
-                    "06-preparation-and-testing/testing-strategy-and-quality-checks"
+                    "08-Preparation-and-testing/testing-strategy-and-quality-checks"
                 ),
                 "title": "Testing Strategy and Quality Checks",
                 "filename": "testing-strategy-and-quality-checks.md",
@@ -313,7 +400,7 @@ class DocsService:
     def get_default_slug(self) -> str:
         if self._flat_docs:
             return self._flat_docs[0].slug
-        return "01-architecture/clean-architecture-and-domain-isolation"
+        return "01-Architecture/clean-architecture-and-domain-isolation"
 
     def get_doc_detail(self, slug: str) -> DocDetail | None:
         clean_slug = slug.strip().strip("/")

@@ -1,234 +1,154 @@
-# Fuel Router
+# SpotterRouter
 
-Fuel Router is a high-performance Django service and interactive web application for planning long-haul trucking routes across the contiguous United States, determining cost-optimal fuel stops, and minimizing total trip spend under strict vehicle range constraints.
+Intelligent Long-Haul Fuel Route Optimization Engine for Contiguous US Commercial Fleets.
 
----
-
-## 1. Problem Statement & Constraints
-
-Fuel is the largest controllable operating expense in commercial freight trucking. Given an origin and destination within the contiguous 48 US states, a vehicle with a maximum range of 500 miles, and a constant fuel consumption of 10 miles per gallon (MPG), the application:
-
-- Resolves locations to geographic coordinates.
-- Computes the driving route geometry and total distance via OSRM.
-- Discovers candidate fuel stations within a 15-mile spatial corridor along the route using PostGIS.
-- Applies a greedy-with-lookahead optimization strategy to select fuel stops and compute exact purchase quantities that minimize overall fuel cost.
-- Persists every computed trip and its fuel stops to PostgreSQL for immediate re-display without recomputation.
-- Decouples plain-language route rationale generation via an asynchronous Celery worker and Fireworks AI LLM adapter.
-- Delivers an interactive Leaflet.js map interface alongside a fully featured REST API.
-
-### Invariants & Assumptions
-- **Vehicle Range**: 500 miles maximum between refueling stops.
-- **Fuel Economy**: Constant 10.0 miles per gallon.
-- **Starting State**: The truck departs the origin with a full tank of fuel at zero initial cost (no purchase recorded at mile 0).
-- **Geographic Scope**: Contiguous 48 US states only. Requests outside this boundary return a graceful `400 out_of_scope_location` response.
-- **Station Pricing**: Sourced from the OPIS truck stop dataset (~8,151 rows). Rows sharing an OPIS Truckstop ID are deduplicated by selecting the minimum retail price.
-- **Corridor Buffer**: 15 miles around route geometry to absorb city-centroid geocoding precision.
-- **Async AI Isolation**: LLM generation runs in Celery and never delays or blocks core route computation.
+[![Python 3.13](https://img.shields.io/badge/Python-3.13-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![Django 6.1](https://img.shields.io/badge/Django-6.1-092E20.svg?logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![PostgreSQL 17 / PostGIS 3.5](https://img.shields.io/badge/PostGIS-17--3.5-336791.svg?logo=postgresql&logoColor=white)](https://postgis.net/)
+[![Redis 8](https://img.shields.io/badge/Redis-8.0-DC382D.svg?logo=redis&logoColor=white)](https://redis.io/)
+[![Celery 5.5](https://img.shields.io/badge/Celery-5.5-37814A.svg?logo=celery&logoColor=white)](https://docs.celeryq.dev/)
+[![Tests Passed](https://img.shields.io/badge/Tests-228%20Passed-22c55e.svg?logo=pytest&logoColor=white)](/)
+[![Mypy Strict](https://img.shields.io/badge/Types-Mypy%20Strict-2563eb.svg)](/)
+[![Ruff Lint](https://img.shields.io/badge/Linter-Ruff-261230.svg?logo=ruff&logoColor=white)](/)
+[![OpenAPI 3.0](https://img.shields.io/badge/OpenAPI-3.0.3-6BA539.svg?logo=openapi-initiative&logoColor=white)](/openapi.yaml)
+[![Dokploy Ready](https://img.shields.io/badge/Deploy-Dokploy-000000.svg)](/docs/?doc=05-Deployments/dokploy-platform-deployment-and-traefik)
 
 ---
 
-## 2. Architecture & Design Patterns
+## Application Routes & Live Navigation
 
-The codebase adheres strictly to Clean Architecture and enterprise Python design patterns:
+The application provides server-rendered interfaces alongside REST APIs. All links below use relative paths so they work in both local development and production environments:
 
-- **Domain Layer (`trips/strategies.py`, `routing/domain.py`)**:
-  - `GreedyLookaheadStrategy`: Implements the classic gas-station optimization algorithm. Rather than naively filling to capacity at every stop, the algorithm evaluates reachable stations ahead and only purchases enough fuel to reach cheaper downstream stations, or fills to capacity if current fuel is cheaper than downstream options.
-- **Service Layer (`trips/services.py`, `routing/services.py`, `explanations/services.py`)**:
-  - `TripPlanningService`: Central orchestrator coordinating geocoding, routing, spatial querying, refueling strategy, persistence, cache-aside, and Celery dispatch.
-  - `RoutingService`: Orchestrates route lookups with coordinate validation.
-  - `GeocodingService`: Chain of responsibility coordinating local database geocoding and live Nominatim fallback.
-  - `ExplanationService`: Formats structured trip payloads and orchestrates LLM prompts.
-- **Repository Pattern (`stations/repositories.py`, `trips/repositories.py`)**:
-  - Encapsulates spatial PostGIS operations (`find_in_corridor`, `annotate(route_fraction=...)`) and database persistence, preventing ORM leakage into business logic.
-- **Adapter Pattern (`routing/adapters/`, `explanations/adapters.py`)**:
-  - `OSRMClientAdapter`: Connects to OSRM routing services, returning parsed distance and GeoJSON LineString geometry.
-  - `FireworksLLMAdapter`: Integrates with Fireworks AI using the `deepseek-v4p1-flash` model.
-  - `LocalGeocoder` and `NominatimGeocoder`: Pluggable geocoding adapters behind a common interface.
-- **Cache-Aside Layer (`trips/services.py`)**:
-  - Two-tier caching: Redis primary cache with normalized coordinates, PostgreSQL persistence as fallback. Repeated route requests complete in milliseconds with zero external API calls.
-- **Asynchronous Worker Layer (`explanations/tasks.py`)**:
-  - Celery background task backed by Redis broker. Automatically updates trip records with AI rationales upon completion.
+| Route | Name | Purpose & Why It Exists |
+|---|---|---|
+| `[/](/)` | **Trip Planner & Dashboard** | Main interface to plan routes, preview benchmark pairs, view fuel stops on an interactive Leaflet map, and inspect recent trip history. |
+| `[/locations/](/locations/)` | **Location Explorer** | Search and browse supported contiguous US cities, states, and coordinates to verify geocoding coverage before dispatching. |
+| `[/datasets/](/datasets/)` | **Dataset Manager** | Inspect active OPIS fuel price data, upload new CSVs, verify SHA-256 hashes, and switch active datasets in real time without downtime. |
+| `[/docs/](/docs/)` | **Engineering Documentation** | Built-in VS Code-style interactive reader containing 24 comprehensive articles covering architecture, algorithms, tradeoffs, infra, and deployments. |
+| `[/api-docs/](/api-docs/)` | **Interactive Swagger UI** | Test and explore the REST API directly in the browser with live parameter execution and schema validation. |
+| `[/openapi.yaml](/openapi.yaml)` | **OpenAPI Specification** | Raw OpenAPI 3.0 YAML specification file ready for import into Postman, Insomnia, or client SDK generators. |
+| `[/api/health/](/api/health/)` | **System Health Check** | Machine-readable health check verifying connectivity to PostgreSQL/PostGIS, Redis, and OSRM routing services. |
+| `[/trips/<id>/pdf/](/trips/<id>/pdf/)` | **Driver Dispatch PDF** | In-memory commercial driver dispatch sheet with turn-by-turn refueling instructions and safety checklists. |
 
 ---
 
-## 3. Quick Start
+## Deep-Dive Documentation
 
-Detailed setup and execution instructions are available in [knowledge/quick-start.md](knowledge/quick-start.md).
+For thorough explanations of design choices, math, tradeoffs, infrastructure, and lessons learned, explore the dedicated documentation suite at `[/docs/](/docs/)`:
 
-### Basic Setup in 4 Steps
+- **01 System architecture**: Clean architecture layer boundaries, domain isolation, two-tier cache-aside with Redis and PostGIS, and the asynchronous Celery pipeline.
+- **02 Current implemented system**: PostGIS spatial corridor matching (`ST_LineLocatePoint`), greedy lookahead refueling algorithm, in-memory PDF engine, and dataset versioning.
+- **03 Design decisions and tradeoffs**: Local filesystem vs cloud storage, OpenStreetMap direct tiles vs MapTiler Cloud, and synchronous vs asynchronous AI rationales.
+- **04 Infrastructure architecture**: Multi-environment Docker Compose files, Nginx reverse proxy edge routing, Redis hit/miss lifecycle with `X-Cache` headers, and operational choices.
+- **05 Production deployments**: Dokploy platform deployment, Traefik edge ingress, automated SSL, secret management, and zero-downtime rolling releases.
+- **06 Brainstorming and failed paths**: First attempts that did not work (midpoint stops, unindexed bounding boxes, full-tank fills) and why the final approach succeeded.
+- **07 What I learned**: Personal engineering reflections on PostGIS spatial queries, greedy algorithms, and US freight logistics.
+- **08 Preparation and engineering standards**: Implementation roadmap, 228 automated tests, strict static typing, and Docker container parity.
+
+---
+
+## Problem Statement & Rules
+
+Fuel represents the single highest variable cost in long-haul trucking. SpotterRouter calculates the cost-minimal refueling schedule for commercial trucks traveling across the contiguous 48 US states:
+
+1. **Vehicle Constraints**: 500-mile maximum tank runway, constant 10.0 MPG fuel consumption.
+2. **Initial Condition**: Vehicle departs the origin with a full tank of fuel at zero initial cost.
+3. **Corridor Discovery**: PostGIS discovers candidate stations within a 15-mile buffer along the OSRM route.
+4. **Greedy Optimization**: Purchases only enough fuel to reach cheaper stations downstream, or tops up when current fuel is cheaper than downstream options.
+5. **Two-Tier Caching**: Checks Redis normalized coordinate cache first, falls back to PostGIS persistent records, and sets `X-Cache: HIT` or `X-Cache: MISS` headers.
+6. **Async AI Rationale**: An asynchronous Celery worker generates plain-language route reasoning via Fireworks AI without delaying route computation.
+
+---
+
+## Quick Start
+
+Detailed instructions are available in [knowledge/quick-start.md](knowledge/quick-start.md).
 
 ```bash
-# 1. Configure environment
-cp .env.example .env
+# 1. Initialize environment files
+make setup-env
 
-# 2. Build and start services (web, celery-worker, db, redis)
+# 2. Build and start development stack (web, celery-worker, db, redis)
 make build
 make up
 
 # 3. Apply database migrations
 make migrate
 
-# 4. Ingest and geocode OPIS fuel price data
+# 4. Ingest and geocode OPIS fuel price dataset
 make load-data
 ```
 
-Once started, access:
-- **Interactive UI**: [http://localhost:8000/](http://localhost:8000/)
-- **API Health Check**: [http://localhost:8000/api/health/](http://localhost:8000/api/health/)
+Once running:
+- Web Application: [http://localhost:8000/](http://localhost:8000/)
+- Swagger API Docs: [http://localhost:8000/api-docs/](http://localhost:8000/api-docs/)
+- System Health Check: [http://localhost:8000/api/health/](http://localhost:8000/api/health/)
 
-### Map Tile Provider (MapTiler Cloud)
-
-Interactive maps on the Trip Detail page use MapTiler Cloud Streets v2 raster tiles with high-DPI 512px resolution.
-To configure your free MapTiler API key:
-1. Sign up for free at [cloud.maptiler.com](https://cloud.maptiler.com/) (100,000 requests/month free).
-2. Add your key to `.env.dev` (or `.env.prod`):
-   ```bash
-   MAPTILER_API_KEY=your_maptiler_api_key_here
-   ```
-3. Restart backend:
-   ```bash
-   make restart-backend
-   ```
-If `MAPTILER_API_KEY` is omitted, the application gracefully falls back to CARTO Voyager basemaps.
+### Map Tile Configuration (MapTiler Cloud)
+To render high-DPI vector tiles on map views:
+1. Obtain a free key from [cloud.maptiler.com](https://cloud.maptiler.com/).
+2. Add `MAPTILER_API_KEY=your_key_here` to `.env.dev` (or `.env.prod`).
+3. Run `make restart-backend`. If omitted, CARTO Voyager basemaps are used automatically.
 
 ---
 
-## 4. REST API Reference
+## REST API Summary
 
-All REST endpoints are available under the `/api/` path.
+All endpoints return structured JSON with uniform error envelopes (`{"error": "...", "detail": "..."}`).
 
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/api/health/` | Service health status check |
-| `POST` | `/api/trips/` | Plan route, optimize fuel stops, and persist trip |
+| `POST` | `/api/trips/` | Plan route, optimize fuel stops, and persist trip (`force_refresh` supported) |
 | `GET` | `/api/trips/` | List recently computed trip plans |
-| `GET` | `/api/trips/<uuid:trip_id>/` | Retrieve full trip plan with stops and explanation |
+| `GET` | `/api/trips/<uuid:trip_id>/` | Retrieve full trip plan with stops and AI rationale |
 
-### Example: Plan a Trip
-
-**Request**:
+Example trip request:
 ```http
 POST /api/trips/
 Content-Type: application/json
 
 {
   "start": "Chicago, IL",
-  "end": "Dallas, TX"
+  "end": "Dallas, TX",
+  "force_refresh": false
 }
 ```
 
-**Response (HTTP 200 OK)**:
-```json
-{
-  "id": "6b151003-f1e0-4324-8d89-fd8781ae4766",
-  "start_input": "Chicago, IL",
-  "end_input": "Dallas, TX",
-  "total_distance_miles": 967.4,
-  "total_gallons": 96.74,
-  "total_cost": 298.45,
-  "fuel_stops": [
-    {
-      "stop_order": 1,
-      "station_name": "Pilot Travel Center #123",
-      "city": "Mount Vernon",
-      "state": "IL",
-      "distance_from_start_miles": 278.5,
-      "gallons_purchased": 46.74,
-      "price_per_gallon": 3.089,
-      "cost": 144.38
-    }
-  ],
-  "route_geometry": {
-    "type": "LineString",
-    "coordinates": [[-87.6298, 41.8781], ...]
-  },
-  "ai_explanation": "Selected 1 fuel stop along I-57 S. Stop 1 in Mount Vernon, IL was chosen for its low retail price ($3.089/gal) before entering higher-cost regions.",
-  "created_at": "2026-09-18T18:45:00Z"
-}
-```
-
-### Uniform Error Format
-All 4xx and 5xx responses use a standardized two-key JSON structure:
-```json
-{
-  "error": "unresolvable_location",
-  "detail": "Unable to resolve location: UnknownCityXYZ"
-}
-```
-
-Standard error codes include `invalid_request`, `unresolvable_location`, `out_of_scope_location`, `routing_unavailable`, `insufficient_station_coverage`, and `not_found`.
-
 ---
 
-## 5. Interactive Web Interface
-
-The user interface is built using server-rendered Django templates and Leaflet.js via CDN (zero npm dependencies, zero build steps):
-
-- **Home Page (`/`)**:
-  - Origin and destination inputs with validation.
-  - 4 quick-select preset benchmark buttons:
-    - Chicago, IL to Dallas, TX
-    - New York, NY to Los Angeles, CA
-    - Seattle, WA to Miami, FL
-    - Atlanta, GA to Chicago, IL
-  - Past computed trips table with clickable links.
-- **Trip Detail Page (`/trips/<uuid:trip_id>/`)**:
-  - Interactive Leaflet map with OpenStreetMap tiles and automatic route viewport fitting (`fitBounds`).
-  - Color-coded markers: Green (Origin), Red (Destination), Blue numbered badges (Fuel Stops).
-  - Stop popups detailing station name, city/state, miles from origin, gallons to fill, unit price, and total stop cost.
-  - 4-metric summary bar: Total Distance, Total Fuel Cost, Total Gallons, Stop Count.
-  - Sequential turn-by-turn fuel stop breakdown table.
-  - AI Route Rationale card with automatic client-side background polling that displays the explanation once Celery finishes without requiring page refresh.
-
----
-
-## 6. API Documentation & OpenAPI Specification
-
-An importable OpenAPI 3.0/3.1 YAML specification is provided at:
-```
-fuel-router.openapi.yaml
-```
-You can import this file directly into Postman or view the interactive Swagger UI at `/api-docs/`. It defines endpoints and schemas for:
-
-
-- System health check
-- All 4 benchmark route presets
-- Trip detail retrieval
-- Trip history listing
-- Error handling scenarios (missing fields, unresolvable locations, non-contiguous states, 404 UUIDs)
-
----
-
-## 7. Testing & Quality Assurance
+## Quality Assurance & Testing
 
 ```bash
-# Run 152 unit and integration tests (100% offline, zero network dependencies)
+# Run the complete test suite (228 tests, 100% offline, zero external API calls)
 make test
 
-# Run tests for a specific app or test file
-make test TEST_ARGS=trips/tests/
-
-# Run code style formatting (Ruff) and strict type checking (Mypy)
+# Run Ruff linter and strict Mypy type validation
 make lint
 ```
 
-- **Test Suite**: 152 automated tests running in ~2.4 seconds.
-- **Static Typing**: Strict Mypy type validation across 88 Python source files with 0 errors.
-- **Linting**: Ruff checking with 0 warnings or errors.
+- **Test Coverage**: 228 automated pytest unit and integration tests passing in under 5 seconds.
+- **Type Safety**: Strict Mypy compliance across all 102 Python source files with zero errors.
+- **Code Standards**: Ruff linting clean across the entire repository.
 
 ---
 
-## 8. Development Commands
+## Development Commands
 
-| Target | Description |
+| Command | Description |
 |---|---|
-| `make build` | Build Docker container images |
-| `make up` | Start background Docker Compose services |
-| `make down` | Stop and remove running containers |
-| `make logs` | Stream logs from the Django web service |
-| `make restart-backend` | Restart development backend container (alias: `make restart`) |
+| `make setup-env` | Initialize `.env.dev` and `.env.prod` from `.env.example` |
+| `make up` | Start development stack with automatic environment setup |
+| `make down` | Stop development stack |
+| `make build` | Build development Docker images |
+| `make logs` | Stream live backend container logs |
+| `make restart-backend` | Restart backend service (alias: `make restart`) |
 | `make migrate` | Execute Django database migrations |
-| `make load-data` | Run raw import, deduplication, and geocoding pipeline |
-| `make test` | Run complete pytest test suite (supports `TEST_ARGS="..."`) |
-| `make lint` | Run Ruff linter and Mypy strict type checker |
-| `make shell` | Launch interactive Django shell inside web container |
+| `make load-data` | Ingest, deduplicate, and geocode active station dataset |
+| `make test` | Run pytest suite inside backend container |
+| `make lint` | Run Ruff and Mypy checks inside backend container |
+| `make shell` | Open interactive Django shell inside backend container |
+| `make prod-build` | Build multi-stage production Docker images |
+| `make prod-up` | Start production stack with Nginx edge proxy |
+| `make prod-down` | Stop production stack |
+| `make prod-logs` | Stream production stack logs |

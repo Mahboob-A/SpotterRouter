@@ -69,8 +69,8 @@ services:
     build:
       context: .
       dockerfile: infra/docker/nginx/Dockerfile
-    ports:
-      - "${PORT:-8080}:80"
+    expose:
+      - "80"
     volumes:
       - static_volume:/app/staticfiles:ro
     networks:

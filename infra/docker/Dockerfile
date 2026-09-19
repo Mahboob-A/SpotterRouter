@@ -12,7 +12,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install system C spatial libraries and runtime tools
+# Install system C spatial libraries, runtime tools, and privilege separation
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         binutils \
@@ -22,6 +22,7 @@ RUN apt-get update \
         libproj-dev \
         postgresql-client \
         curl \
+        gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Create unprivileged system user and group
@@ -59,8 +60,6 @@ COPY --from=builder --chown=appuser:appgroup /home/appuser/.uszipcode /home/appu
 COPY --chown=appuser:appgroup . .
 RUN chmod +x /app/infra/scripts/*.sh
 
-USER appuser
-
 EXPOSE 8000
 
 ENTRYPOINT ["/app/infra/scripts/entrypoint.sh"]
@@ -78,12 +77,11 @@ COPY --from=builder --chown=appuser:appgroup /home/appuser/.uszipcode /home/appu
 COPY --chown=appuser:appgroup . .
 RUN chmod +x /app/infra/scripts/*.sh
 
-# Run collectstatic at build time
+# Run collectstatic at build time and ensure appuser ownership
 RUN DJANGO_SECRET_KEY=build-dummy-key \
     DATABASE_URL=sqlite:///tmp/build.sqlite3 \
-    python manage.py collectstatic --noinput
-
-USER appuser
+    python manage.py collectstatic --noinput \
+    && chown -R appuser:appgroup /app/staticfiles
 
 EXPOSE 8000
 

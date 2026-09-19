@@ -5,7 +5,7 @@ echo "Applying database migrations..."
 python manage.py migrate --noinput
 
 echo "Collecting static assets into static volume..."
-python manage.py collectstatic --noinput
+python manage.py collectstatic --noinput || true
 
 if [ "${AUTO_LOAD_STATIONS:-False}" = "True" ]; then
     echo "Checking station database status..."

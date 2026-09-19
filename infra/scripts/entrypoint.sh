@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Ensure runtime volume directories are owned by appuser
+if [ "$(id -u)" = "0" ]; then
+    chown -R appuser:appgroup /app/staticfiles /app/dataset /home/appuser 2>/dev/null || true
+fi
+
 # Wait for PostgreSQL if DATABASE_URL is defined
 if [ -n "${DATABASE_URL:-}" ]; then
     echo "Waiting for database connection..."
@@ -24,4 +29,9 @@ sys.exit(1)
     echo "Database is ready."
 fi
 
-exec "$@"
+# Drop privileges to appuser if running as root
+if [ "$(id -u)" = "0" ]; then
+    exec gosu appuser "$@"
+else
+    exec "$@"
+fi
